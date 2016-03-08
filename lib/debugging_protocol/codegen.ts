@@ -1,6 +1,4 @@
-import * as fs from "fs";
-import * as os from "os";
-import * as Protocol from "./protocol";
+import * as protocol from "./json_interface";
 
 export interface ProtocolCodegenOptions {
   clientModuleName?: string;
@@ -11,13 +9,13 @@ export interface ProtocolCodegenOptions {
 /**
  * Generate Typescript interface to use with the DebuggingProtocol#domains(protocol) method.
  */
-export default class ProtocolCodegen {
+export class ProtocolCodegen {
   indent: string;
   typescript: boolean;
   clientModuleName: string;
 
   indentStack: string[] = [""];
-  code: string = undefined;
+  code: string | undefined = undefined;
 
   constructor(options: ProtocolCodegenOptions) {
     let opts = options || {};
@@ -30,7 +28,7 @@ export default class ProtocolCodegen {
     return this.indentStack[this.indentStack.length - 1];
   }
 
-  generate(protocol: Protocol.Protocol): string {
+  generate(protocol: protocol.Protocol): string {
     this.code = "";
     this.indentStack.length = 1;
 
@@ -78,7 +76,7 @@ export default class ProtocolCodegen {
     return code;
   }
 
-  appendProtocolVersionComment(version: Protocol.Version) {
+  appendProtocolVersionComment(version: protocol.Version) {
     this.append("/**");
     this.append(` * Debugging Protocol ${version.major}.${version.minor} Domains`);
     this.append(` * Generated on ${new Date()}`);
@@ -107,7 +105,7 @@ export default class ProtocolCodegen {
     this.append("}");
   }
 
-  appendEventMember(event: Protocol.Event, domainName: string) {
+  appendEventMember(event: protocol.Event, domainName: string) {
     if (!this.typescript) {
       return;
     }
@@ -131,7 +129,7 @@ export default class ProtocolCodegen {
     this.append("}");
   }
 
-  appendCommandMethod(command: Protocol.Command, domainName: string) {
+  appendCommandMethod(command: protocol.Command, domainName: string) {
     let name = command.name;
     let fullname = `${domainName}.${name}`;
     let paramsType = this.typescript ? `: ${fullname}_Parameters` : "";
@@ -147,7 +145,7 @@ export default class ProtocolCodegen {
     this.append("}");
   }
 
-  appendEventAccessors(event: Protocol.Event, domainName: string) {
+  appendEventAccessors(event: protocol.Event, domainName: string) {
     let name = event.name;
     let fullname = `${domainName}.${name}`;
     let handlerType = this.typescript ? `: ${fullname}_Handler` : "";
@@ -174,24 +172,28 @@ export default class ProtocolCodegen {
     this.append("}");
   }
 
-  appendType(type: Protocol.Type) {
-    let properties = type.properties;
-    if (type.type === "object" && properties && properties.length) {
-      this.append(`export interface ${type.id} {`);
+  appendType(type: protocol.Type) {
+    this.appendAlias(type.id, type);
+  }
+
+  appendAlias(id: string, desc: protocol.TypeDesc) {
+    if (protocol.isObjectDesc(desc) && desc.properties && desc.properties.length) {
+      let objDesc: protocol.ObjectDesc = desc;
+      this.append(`export interface ${id} {`);
       this.block(() => {
-        each(properties, prop => this.generateProperty(prop));
+        each(objDesc.properties, prop => this.generateProperty(prop));
       });
       this.append("}");
     } else {
-      this.append(`export type ${type.id} = ${this.typeString(type)};`);
+      this.append(`export type ${id} = ${this.typeString(desc)};`);
     }
   }
 
-  appendEventParametersType(event: Protocol.Event) {
+  appendEventParametersType(event: protocol.Event) {
     this.generateObjectTypeAlias(`${event.name}_Parameters`, event.parameters);
   }
 
-  appendEventHandlerType(event: Protocol.Event) {
+  appendEventHandlerType(event: protocol.Event) {
     let params = event.parameters ? `params: ${event.name}_Parameters` : "";
     this.append(`export type ${event.name}_Handler = (${params}) => void;`);
   }
@@ -202,11 +204,11 @@ export default class ProtocolCodegen {
     this.indentStack.pop();
   }
 
-  append(line) {
+  append(line: string) {
     this.code += this.currentIndent + line + "\n";
   }
 
-  generateProperty(desc: Protocol.NamedDescriptor) {
+  generateProperty(desc: protocol.NamedTypeDescOrRef) {
     this.appendComment(desc);
     this.append(this.namedTypeString(desc));
   }
@@ -218,20 +220,21 @@ export default class ProtocolCodegen {
     this.append(`/** ${obj.description} */`);
   }
 
-  appendCommandTypes(command: Protocol.Command) {
+  appendCommandTypes(command: protocol.Command) {
     let name = command.name;
     this.generateObjectTypeAlias(`${name}_Parameters`, command.parameters);
     this.generateObjectTypeAlias(`${name}_Return`, command.returns);
   }
 
-  generateObjectTypeAlias(name: string, props: Protocol.NamedDescriptor[]) {
+  generateObjectTypeAlias(name: string, props: protocol.NamedTypeDescOrRef[] | undefined) {
     if (!props) {
       return;
     }
     if (props.length) {
       this.append(`export type ${name} = {`);
+      let p = props;
       this.block(() => {
-        props.forEach(prop => this.generateProperty(prop));
+        p.forEach(prop => this.generateProperty(prop));
       });
       this.append("};");
     } else {
@@ -239,41 +242,39 @@ export default class ProtocolCodegen {
     }
   }
 
-  namedTypeString(desc: Protocol.NamedDescriptor): string {
+  namedTypeString(desc: protocol.NamedTypeDescOrRef): string {
     return `${desc.name}${desc.optional ? "?" : ""}: ${this.typeString(desc)};`;
   }
 
-  typeString(desc: Protocol.Descriptor): string {
-    if (desc.$ref) {
-      return desc.$ref;
+  typeString(desc: protocol.TypeDesc | protocol.TypeRef): string {
+    let type: string;
+    if (protocol.isTypeRef(desc)) {
+      type = desc.$ref;
+    } else if (protocol.isObjectDesc(desc)) {
+      let properties = desc.properties;
+      if (properties && properties.length) {
+        type = "{ " + properties.map(p => this.namedTypeString(p)).join(" ") + " }";
+      } else {
+        type = "any";
+      }
+    } else if (protocol.isStringDesc(desc)) {
+      if (desc.enum) {
+        type = desc.enum.map(s => JSON.stringify(s)).join(" | ");
+      } else {
+        type = "string";
+      }
+    } else if (protocol.isArrayDesc(desc)) {
+      type = this.typeString(desc.items) + "[]";
+    } else if (protocol.isNumberDesc(desc)) {
+      type = "number";
+    } else {
+      type = desc.type;
     }
-    let properties = desc.properties;
-    switch (desc.type) {
-      case "integer":
-        return "number";
-      case "number":
-      case "boolean":
-      case "any":
-        return desc.type;
-      case "string":
-        if (desc.enum) {
-          return desc.enum.map(JSON.stringify).join(" | ");
-        }
-        return "string";
-      case "array":
-        return this.typeString(desc.items) + "[]";
-      case "object":
-        if (properties && properties.length) {
-          return "{ " + properties.map(p => this.namedTypeString(p)).join(" ") + " }";
-        }
-        return "any";
-      default:
-        throw new Error("unexpected type" + JSON.stringify(desc));
-    }
+    return type;
   }
 }
 
-function each<T>(arr: T[], cb: (arg: T) => void) {
+function each<T>(arr: T[] | undefined, cb: (arg: T) => void) {
   if (!arr) {
     return;
   }

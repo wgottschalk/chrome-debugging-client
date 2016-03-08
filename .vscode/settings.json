@@ -12,6 +12,6 @@
 		"fileMatch": [
 			"/tsconfig.json"
 		],
-		"url": "http://json.schemastore.org/tsconfig?nocache1"
+		"url": "http://json.schemastore.org/tsconfig?update"
 	}]
 }

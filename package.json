@@ -14,20 +14,22 @@
     "rebuild": "rm -rf dist && tsc",
     "compile": "tsc --watch",
     "lint": "tslint test.ts index.ts test/**/*.ts lib/**/*.ts",
-    "test": "tsc && node dist/test.js | faucet"
+    "test": "tsc && node dist/test.js"
   },
   "author": "Kris Selden <kris.selden@gmail.com>",
   "license": "Apache-2.0",
   "dependencies": {
+    "debug": "^2.2.0",
     "mktemp": "^0.4.0",
     "rimraf": "^2.5.1",
+    "tmp": "0.0.28",
     "ws": "^1.0.1"
   },
   "devDependencies": {
     "faucet": "0.0.1",
     "tape": "^4.4.0",
-    "tslint": "^3.3.0",
-    "typescript": "^1.8.0"
+    "tslint": "next",
+    "typescript": "next"
   },
   "engine": "node >= 4.0.0"
 }

@@ -6,7 +6,8 @@
     "outDir": "../dist",
     "sourceMap": true,
     "noLib": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "strictNullChecks": true
   },
   "files": [
     "../node_modules/typescript/lib/lib.core.es6.d.ts",
