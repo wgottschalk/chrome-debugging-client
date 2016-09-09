@@ -1,4 +1,4 @@
-import { Host, TemporaryDirectory, Process } from "../host";
+import { Host, TmpDir, Process } from "../host";
 import {
   BrowserLauncher,
   BrowserLauncherOptions,
@@ -7,6 +7,7 @@ import {
 import { Disposable, DisposableStack } from "../common/disposable";
 import { HttpDebuggingProtocolClient } from "../debugging_protocol_client/http_client";
 import { DesktopBrowser } from "./desktop_browser";
+import { WebSocketDebuggingProtocolClient } from "../debugging_protocol_client/web_socket_client";
 
 export class DesktopBrowserLauncher implements BrowserLauncher {
   constructor(
@@ -53,10 +54,10 @@ export class DesktopBrowserLauncher implements BrowserLauncher {
       .then(execute)
       .then(resolvePort)
       .then(createBrowser)
-      .catch(e => {
+      .catch((err: Error) => {
         // cleanup disposables if we fail to create browser
         disposables.dispose();
-        throw e;
+        throw err;
       });
   }
 
@@ -146,12 +147,12 @@ export class DesktopBrowserLauncher implements BrowserLauncher {
     });
   }
 
-  protected createTmpProfile(): Promise<TemporaryDirectory> {
+  protected createTmpProfile(): Promise<TmpDir> {
     return this.host.createTmpDir();
   }
 
   protected execute(args: string[]): Promise<Process> {
-    return this.host.exec(this.executablePath, args);
+    return this.host.execute(this.executablePath, args);
   }
 
   protected readPortFile(portPath: string): Promise<number> {

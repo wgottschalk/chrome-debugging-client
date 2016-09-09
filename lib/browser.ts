@@ -13,11 +13,45 @@ export interface BrowserFinder {
 }
 
 export interface BrowserLauncherOptions {
+  /*
+    Definition for debugging protocol.
+    JSON Object of domain name to collection of
+    commands, events and types.
+   */
+  debuggingProtocol?: Protocol;
+
+  /*
+    URL to start the browser with. URL can be set later via
+    debugging protocol.
+   */
   url?: string;
+
+  /*
+    Path to the user data directory to start the browser with.
+    It is best just to let this default to a temporary directory.
+   */
   profilePath?: string;
+
+  /*
+    Port to connect to for inspecting tabs via HTTP.
+    Better to let this default to an ephemeral port.
+   */
   debuggingPort?: number;
+
+  /*
+    Useful for testing.
+   */
   ignoreCertificateErrors?: boolean;
+
+  /*
+    Disable Chrome explicitly scheduling GC during idle.
+    V8 still will GC.
+   */
   disableV8IdleTasks?: boolean;
+
+  /*
+    Set window size, explicit window size helps with rendering variance.
+   */
   windowSize?: {
     width: number;
     height: number;

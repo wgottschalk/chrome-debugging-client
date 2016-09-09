@@ -11,21 +11,15 @@ export interface Host {
   isExecutable(path: string): Promise<boolean>;
   readFile(path: string): Promise<string>;
   deleteFile(path: string): Promise<void>;
-  exec(command: string, args: string[]): Promise<Process>;
-  // resolvePath(...pathSegments: string[]): string;
-  // isFile(path: string): Promise<boolean>;
-  // isDirectory(path: string): Promise<boolean>;
-  // readFile(path: string): Promise<string>;
-  // removeFile(path: string): Promise<void>;
-  // removeDirectory(path: string): Promise<void>;
-  createTmpDir(): Promise<TemporaryDirectory>;
+  execute(command: string, args: string[]): Promise<Process>;
+  createTmpDir(): Promise<TmpDir>;
 }
 
 export interface DebugFunction {
   (msg: string): void;
 }
 
-export interface TemporaryDirectory extends Disposable {
+export interface TmpDir extends Disposable {
   path: string;
 }
 

@@ -1,4 +1,4 @@
-import { Host, Process } from "../host";
+import { Host, Process, WebSocketConnection } from "../host";
 import {
   BrowserFinderOptions,
   BrowserFinder,
@@ -9,8 +9,11 @@ import {
 } from "../browser";
 import { DisposableStack } from "../common/disposable";
 import { HttpDebuggingProtocolClient, VersionInfo } from "../debugging_protocol_client/http_client";
+import { DesktopBrowserTab } from "./desktop_browser_tab";
 
 export class DesktopBrowser implements Browser {
+  private tabs = new Map<string, DesktopBrowserTab>();
+
   constructor(
     private host: Host,
     private disposables: DisposableStack,
@@ -18,7 +21,7 @@ export class DesktopBrowser implements Browser {
     public version: string) {
   }
 
-  static create(host: Host, disposables: DisposableStack, port: number): Promise<DesktopBrowser> {
+  public static create(host: Host, disposables: DisposableStack, port: number): Promise<DesktopBrowser> {
     let httpClient = host.createHttpClient("localhost", port);
     let client = new HttpDebuggingProtocolClient(httpClient);
     return client.version().then(version => {
@@ -26,42 +29,27 @@ export class DesktopBrowser implements Browser {
     });
   }
 
-  listTabs(): Promise<BrowserTab[]> {
+  public listTabs(): Promise<BrowserTab[]> {
     return this.client.listTabs().then(tabs => {
       return tabs.map(tab => new DesktopBrowserTab(this.host, this.client, tab.id, tab.webSocketDebuggerUrl));
     });
   }
 
-  newTab(url?: string): Promise<BrowserTab> {
-    throw new Error("not implemented");
+  public newTab(url?: string): Promise<BrowserTab> {
+    throw Error();
   }
 
-  dispose(): Promise<any> {
+  private getOrCreateTab(id: string, webSocketDebuggerUrl: string | undefined) {
+    let tab = this.tabs.get(id);
+    if (!tab) {
+      tab = new DesktopBrowserTab(this.host, this.client, id, webSocketDebuggerUrl);
+      this.disposables.push(tab);
+      this.tabs.set(id, tab);
+    }
+    return tab;
+  }
+
+  public dispose(): Promise<any> {
     return this.disposables.dispose();
-  }
-}
-
-export class DesktopBrowserTab implements BrowserTab {
-  constructor(
-    private host: Host,
-    private client: HttpDebuggingProtocolClient,
-    public id: string,
-    public webSocketDebuggerUrl: string | undefined) {
-  }
-
-  openDebuggingProtocol(): Promise<DebuggingProtocolConnection> {
-    throw new Error("not implemented");
-  }
-
-  activate(): Promise<void> {
-    return this.client.activateTab(this.id);
-  }
-
-  close(): Promise<void> {
-    return this.client.closeTab(this.id)
-  }
-
-  dispose(): Promise<void> {
-    return Promise.resolve();
   }
 }

@@ -4,7 +4,7 @@ import {
   HttpClient,
   WebSocketConnection,
   WebSocketDelegate,
-  TemporaryDirectory,
+  TmpDir,
   Process
 } from "../host";
 
@@ -13,6 +13,7 @@ function normalize(path: string): string {
 }
 
 export function createNodeHost(): Host {
+  const debug: (...args: any[]) => {} = require("debug")("chrome-debugging");
   const WebSocket: WSModule = require("ws");
   const http: HttpModule = require("http");
   const os: OSModule = require("os");
@@ -52,18 +53,16 @@ export function createNodeHost(): Host {
     });
   }
 
-  function createTemporaryDirectory(): Promise<TemporaryDirectory> {
+  function createTmpDir(): Promise<TmpDir> {
     return new Promise((resolve) => {
       let tmpobj = tmp.dirSync({
         unsafeCleanup: true
       });
       resolve({
         path: normalize(tmpobj.name),
-        dispose() {
-          return new Promise(resolve => {
-            try {
-              tmpobj.removeCallback();
-            } catch (e) {}
+        dispose(): Promise<void> {
+          return new Promise<void>(resolve => {
+            resolve(tmpobj.removeCallback());
           });
         }
       });
@@ -82,7 +81,7 @@ export function createNodeHost(): Host {
     return new Promise<void>((resolve, reject) => fs.unlink(path, err => err ? reject(err) : resolve()));
   }
 
-  function exec(executable: string, args: string[]): Promise<Process> {
+  function execute(executable: string, args: string[]): Promise<Process> {
     return new Promise((resolve, reject) => {
       let child = child_process.execFile(executable, args, {
         encoding: "utf8"
@@ -112,10 +111,10 @@ export function createNodeHost(): Host {
     createHttpClient: createHttpClient,
     openWebSocket: openWebSocket,
     isExecutable: isExecutable,
-    createTmpDir: createTemporaryDirectory,
+    createTmpDir: createTmpDir,
     readFile: readFile,
     deleteFile: deleteFile,
-    exec: exec
+    execute: execute
   };
 }
 
@@ -192,13 +191,13 @@ class NodeWebSocketConnection {
   }
 }
 
-interface EventNotifier {
+interface EventEmitter {
   on(event: string, listener: Function): any;
   removeListener(event: string, listener: Function): any;
   removeAllListeners(event?: string): any;
 }
 
-function eventPromise<T>(emitter: EventNotifier, resolveEvent: string, rejectEvent: string): Promise<T> {
+function eventPromise<T>(emitter: EventEmitter, resolveEvent: string, rejectEvent: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     let resolveHandler = (evt: any) => {
       resolve(evt);
@@ -247,11 +246,11 @@ interface ChildProcessModule {
   execFile(executable: string, args: string[], options: any): ChildProcess;
 }
 
-interface Stream extends EventNotifier {
+interface Stream extends EventEmitter {
   pipe(stream: Stream): void;
 }
 
-interface ChildProcess extends EventNotifier {
+interface ChildProcess extends EventEmitter {
   on(event: "close", callback: () => void): void;
   on(event: "exit", callback: (code: number, signal: string) => void): void;
   on(event: "error", callback: (err: Error) => void): void;
@@ -265,10 +264,10 @@ interface Stats {
   isFile(): boolean;
 }
 
-interface ClientRequest extends EventNotifier {
+interface ClientRequest extends EventEmitter {
 }
 
-interface IncomingMessage extends EventNotifier {
+interface IncomingMessage extends EventEmitter {
   statusCode: number;
   setEncoding(encoding: string): void;
 }
@@ -278,7 +277,7 @@ interface WSModule {
 }
 
 namespace WSModule {
-  export interface WebSocket extends EventNotifier {
+  export interface WebSocket extends EventEmitter {
     readyState: number;
     CLOSED: number;
     close(code?: number, data?: any): void;

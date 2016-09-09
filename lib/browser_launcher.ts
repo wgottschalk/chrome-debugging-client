@@ -4,7 +4,9 @@ import { Browser, BrowserFinder, BrowserFinderOptions, BrowserLauncherOptions } 
 import { Host } from "./host";
 import { createNodeHost } from "./host/node_host";
 
-export interface LaunchBrowserOptions extends BrowserFinderOptions, BrowserLauncherOptions {
+export interface LaunchBrowserOptions extends BrowserLauncherOptions {
+  browserType?: string;
+  browserExecutable?: string;
 }
 
 export class BrowserLauncher {

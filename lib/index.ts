@@ -14,4 +14,4 @@ export {
 
 export { createNodeHost } from "./host/node_host";
 
-export { BrowserLauncher } from "./browser_launcher";
+export { BrowserLauncher, LaunchBrowserOptions } from "./browser_launcher";
