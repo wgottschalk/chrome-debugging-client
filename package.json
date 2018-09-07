@@ -1,6 +1,6 @@
 {
   "name": "chrome-debugging-client",
-  "version": "0.6.8",
+  "version": "1.0.0-beta",
   "description": "An async/await friendly Chrome debugging client with TypeScript support",
   "keywords": [
     "CDP",
