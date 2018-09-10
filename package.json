@@ -44,6 +44,7 @@
     "@types/tmp": "^0.0.33",
     "@types/ws": "*",
     "chrome-launcher": "^0.10.2",
+    "devtools-protocol": "*",
     "execa": "^1.0.0",
     "tmp": "^0.0.33",
     "ws": "^6.0.0"
@@ -54,6 +55,7 @@
     "@types/node": "^10.9.2",
     "@types/tape": "^4.2.32",
     "ava": "^0.25.0",
+    "devtools-protocol": "^0.0.589586",
     "got": "^9.2.0",
     "prettier": "^1.14.0",
     "tslint": "^5.11.0",

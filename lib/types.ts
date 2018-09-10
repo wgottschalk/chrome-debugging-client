@@ -1,3 +1,82 @@
+import { ProtocolMapping } from "devtools-protocol/types/protocol-mapping";
+
+export type Events = ProtocolMapping.Events;
+export type Commands = ProtocolMapping.Commands;
+
+export type Command = keyof Commands;
+export type Event = keyof Events;
+
+export type CommandParamsType<C extends Command> = Commands[C]["paramsType"][0];
+export type CommandReturnType<C extends Command> = Commands[C]["returnType"];
+export type EventParamsType<E extends Event> = Events[E][0];
+
+export type CommandWithoutParams = {
+  [C in Command]: CommandParamsType<C> extends never ? C : never
+}[Command];
+
+export type CommandWithParams = Exclude<Command, CommandWithoutParams>;
+
+export type CommandWithOptionalParams = {
+  [C in CommandWithParams]: Extract<
+    CommandParamsType<C>,
+    undefined
+  > extends never
+    ? never
+    : C
+}[CommandWithParams];
+
+export type CommandWithRequiredParams = Exclude<
+  CommandWithParams,
+  CommandWithOptionalParams
+>;
+
+export type EventWithoutParams = {
+  [E in Event]: EventParamsType<E> extends never ? E : never
+}[Event];
+
+export type EventWithParams = Exclude<Event, EventWithoutParams>;
+
+export type EventListener<E extends Event> = EventParamsType<E> extends never
+  ? () => void
+  : (params: EventParamsType<E>) => void;
+
+export type EventPredicate<E extends Event> = (
+  params: EventParamsType<E>,
+) => boolean;
+
+// using the tuple ...args expansion is really slow
+// faster to break it into commands or events with or without optional or required params
+// define the overloads for each type
+
+export interface IDebuggingProtocolClient extends IDisposable {
+  send<C extends CommandWithoutParams>(
+    command: C,
+  ): Promise<CommandReturnType<C>>;
+  send<C extends CommandWithOptionalParams>(
+    command: C,
+    params?: CommandParamsType<C>,
+  ): Promise<CommandReturnType<C>>;
+  send<C extends CommandWithRequiredParams>(
+    command: C,
+    params: CommandParamsType<C>,
+  ): Promise<CommandReturnType<C>>;
+
+  on<E extends Event>(event: E, listener: EventListener<E>): void;
+
+  once<E extends Event>(event: E, listener: EventListener<E>): void;
+
+  removeListener<E extends Event>(event: E, listener: EventListener<E>): void;
+
+  next<E extends EventWithParams>(
+    event: E,
+    predicate?: EventPredicate<E>,
+  ): Promise<EventParamsType<E>>;
+  next<E extends EventWithoutParams>(event: E): Promise<any>;
+
+  // disconnect client
+  close(): Promise<void>;
+}
+
 /**
  * The session is a factory for the various debugging client primitives
  * that tracks all of the disposables it creates, so it can ensure they are
@@ -91,12 +170,6 @@ export interface IVersionResponse {
   "Protocol-Version": string;
   "User-Agent": string;
   "WebKit-Version": string;
-}
-
-export interface IDebuggingProtocolClient extends IEventNotifier, IDisposable {
-  send<T>(command: string, params?: any): Promise<T>;
-  send(command: string, params?: any): Promise<any>;
-  close(): Promise<void>;
 }
 
 export interface IEventNotifier {
