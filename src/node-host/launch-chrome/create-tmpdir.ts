@@ -1,15 +1,15 @@
 import * as tmp from "tmp";
-import { IDisposable } from "./types";
+import Disposable from "../../../types/disposable";
 
 tmp.setGracefulCleanup();
 
-export interface ITmpDir extends IDisposable {
+export interface TmpDir extends Disposable {
   path: string;
 }
 
 export default async function createTmpDir(
   customRoot?: string,
-): Promise<ITmpDir> {
+): Promise<TmpDir> {
   const options: tmp.Options = {
     unsafeCleanup: true,
   };

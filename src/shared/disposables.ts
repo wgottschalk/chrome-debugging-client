@@ -1,16 +1,18 @@
-import { IDisposable } from "./types";
+import Disposable from "../../types/disposable";
 
-export default class Disposables implements IDisposable {
-  private disposables: IDisposable[] = [];
+declare const console: any;
 
-  public add<T extends IDisposable>(disposable: T): T {
+export default class Disposables implements Disposable {
+  private disposables: Disposable[] = [];
+
+  public add<T extends Disposable>(disposable: T): T {
     this.disposables.push(disposable);
     return disposable;
   }
 
   public async dispose(): Promise<void> {
     const { disposables } = this;
-    let disposable: IDisposable | undefined;
+    let disposable: Disposable | undefined;
     while ((disposable = disposables.pop()) !== undefined) {
       try {
         await disposable.dispose();
@@ -19,7 +21,7 @@ export default class Disposables implements IDisposable {
         // don't want to overwrite the error
 
         // tslint:disable-next-line:no-console
-        console.error(err);
+        console.error(err); // TODO something better like dispose error event
       }
     }
   }

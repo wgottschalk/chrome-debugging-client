@@ -1,17 +1,17 @@
 import * as finder from "chrome-launcher/dist/chrome-finder";
 import { getPlatform } from "chrome-launcher/dist/utils";
-import { IResolveOptions } from "./types";
+import { ChromeResolveOptions } from "../../../types/host";
 
 const CANARY_PATTERN = /Canary|unstable|SxS/i;
 
-export default function resolveBrowser(options?: IResolveOptions): string {
+export default function resolveBrowser(options?: ChromeResolveOptions): string {
   let executablePath =
     (options && options.executablePath) ||
     process.env.LIGHTHOUSE_CHROMIUM_PATH ||
     process.env.CHROME_PATH ||
     process.env.CHROME_BIN;
   let browserType = options && options.browserType;
-  if (browserType === undefined) {
+  if (!browserType) {
     browserType = executablePath === undefined ? "system" : "exact";
   }
 

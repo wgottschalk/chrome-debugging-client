@@ -3,7 +3,7 @@ import createDebuggingProtocolClient from "./create-debugging-protocol-client";
 import createHTTPClient from "./create-http-client";
 import createTargetConnection from "./create-target-connection";
 import createTmpDir from "./create-tmpdir";
-import Disposables from "./disposables";
+import Disposables from "./shared/disposables";
 import openWebSocket from "./open-web-socket";
 import resolveBrowser from "./resolve-browser";
 import spawnBrowser from "./spawn-browser";

@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.shared.json",
+  "compilerOptions": {
+    "outDir": "../dist",
+    "typeRoots": [],
+    "types": [],
+    "lib": ["es2017"]
+  },
+  "exclude": ["shared", "test", "node-host"],
+  "references": [{ "path": "shared" }, { "path": "node-host" }]
+}

@@ -2,9 +2,10 @@ import { ChildProcess } from "child_process";
 import * as execa from "execa";
 import * as fs from "fs";
 import * as path from "path";
-import { delay } from "./delay";
+import Disposable from "../../../types/disposable";
+import { ChromeProcess, ChromeSpawnOptions } from "../../../types/host";
+import { delay } from "../../shared/delay";
 import { DEFAULT_FLAGS } from "./flags";
-import { IBrowserProcess, ISpawnOptions } from "./types";
 
 const PORT_FILENAME = "DevToolsActivePort";
 const NEWLINE = /\r?\n/;
@@ -15,13 +16,13 @@ const NEWLINE = /\r?\n/;
 export default async function spawnBrowser(
   executablePath: string,
   dataDir: string,
-  options?: ISpawnOptions,
-): Promise<IBrowserProcess> {
+  options?: ChromeSpawnOptions,
+): Promise<ChromeProcess & Disposable> {
   const portFile = path.join(dataDir, PORT_FILENAME);
   // delete port file before launching
   await tryDeleteFile(portFile);
   const args = getArguments(dataDir, options);
-  const process: IBrowserProcess = new BrowserProcess(
+  const process: ChromeProcess & Disposable = new DisposableChromeProcess(
     executablePath,
     args,
     options === undefined ? undefined : options.stdio,
@@ -51,7 +52,7 @@ export default async function spawnBrowser(
   }
 }
 
-function getArguments(dataDir: string, options?: ISpawnOptions): string[] {
+function getArguments(dataDir: string, options?: ChromeSpawnOptions): string[] {
   const windowSize = (options && options.windowSize) || {
     height: 736,
     width: 414,
@@ -69,7 +70,7 @@ function getArguments(dataDir: string, options?: ISpawnOptions): string[] {
 }
 
 /* tslint:disable:max-classes-per-file */
-class BrowserProcess implements IBrowserProcess {
+class DisposableChromeProcess implements ChromeProcess, Disposable {
   public remoteDebuggingPort: number = 0;
   public remoteDebuggingPath: string | undefined;
   public dataDir: string;

@@ -1,7 +1,7 @@
-import { IEventNotifier } from "./types";
+import { EventEmitter } from "../../types/host";
 
 export function eventPromise<T>(
-  emitter: IEventNotifier,
+  emitter: EventEmitter,
   resolveEvent: string,
   rejectEvent: string,
 ): Promise<T> {
