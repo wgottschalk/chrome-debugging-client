@@ -40,10 +40,6 @@ export type EventListener<E extends Event> = EventParamsType<E> extends never
   ? () => void
   : (params: EventParamsType<E>) => void;
 
-export type EventPredicate<E extends Event> = (
-  params: EventParamsType<E>,
-) => boolean;
-
 // using the tuple ...args expansion is really slow
 // faster to break it into commands or events with or without optional or required params
 // define the overloads for each type
@@ -67,11 +63,8 @@ export interface IDebuggingProtocolClient extends IDisposable {
 
   removeListener<E extends Event>(event: E, listener: EventListener<E>): void;
 
-  next<E extends EventWithParams>(
-    event: E,
-    predicate?: EventPredicate<E>,
-  ): Promise<EventParamsType<E>>;
-  next<E extends EventWithoutParams>(event: E): Promise<any>;
+  until<E extends EventWithParams>(event: E): Promise<EventParamsType<E>>;
+  until<E extends EventWithoutParams>(event: E): Promise<any>;
 
   // disconnect client
   close(): Promise<void>;
