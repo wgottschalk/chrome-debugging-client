@@ -9,6 +9,9 @@
   "rules": {
     "interface-name": false,
     "interface-over-type-literal": false,
+    "variable-name": {
+      "options": ["allow-leading-underscore"]
+    },
     "no-floating-promises": true,
     "no-duplicate-imports": true,
     "no-import-side-effect": true,

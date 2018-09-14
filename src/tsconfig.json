@@ -2,10 +2,12 @@
   "extends": "../tsconfig.shared.json",
   "compilerOptions": {
     "outDir": "../dist",
-    "typeRoots": [],
-    "types": [],
-    "lib": ["es2017"]
+    "types": ["node"]
   },
-  "exclude": ["shared", "test", "node-host"],
-  "references": [{ "path": "shared" }, { "path": "node-host" }]
+  "exclude": ["test", "shared", "node-host", "protocol"],
+  "references": [
+    { "path": "shared" },
+    { "path": "node-host" },
+    { "path": "protocol" }
+  ]
 }

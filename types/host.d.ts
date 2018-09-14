@@ -1,10 +1,11 @@
 import Disposable from "./disposable";
+import Connection, { ConnectionDelegate } from "./connection";
 
 export interface Host {
   launchChrome(
     options?: ChromeLaunchOptions,
   ): Promise<ChromeProcess & Disposable>;
-  createWebSocket(url: string): ConnectionOpener;
+  openWebSocket(url: string, delegate: ConnectionDelegate): Promise<Connection>;
   createHttpClient(host: string, port: number): HttpClient;
   createEventEmitter(): EventEmitter;
 }
@@ -33,19 +34,6 @@ export interface EventEmitter {
   removeListener(event: string, listener: (params?: any) => void): void;
   removeAllListeners(event?: string): void;
   emit(event: string, params?: any): void;
-}
-
-export interface ConnectionOpener {
-  open(delegate: ConnectionDelegate): Promise<Connection & Disposable>;
-}
-
-export interface ConnectionDelegate {
-  onMessage(message: string): void;
-  onDisconnect(err?: Error): void;
-}
-
-export interface Connection {
-  send(message: string): Promise<void>;
 }
 
 export interface HttpClient {

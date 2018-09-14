@@ -1,26 +1,18 @@
 import * as WebSocket from "ws";
+import Connection, { ConnectionDelegate } from "../../types/connection";
 import Disposable from "../../types/disposable";
-import {
-  Connection,
-  ConnectionDelegate,
-  ConnectionOpener,
-} from "../../types/host";
 import { eventPromise } from "../shared/event-promise";
 
-export default function createWebSocket(url: string): ConnectionOpener {
-  async function open(
-    delegate: ConnectionDelegate,
-  ): Promise<Connection & Disposable> {
-    const ws = new WebSocket(url);
-    await eventPromise(ws, "open", "error");
-    return new WebSocketConnection(ws, delegate);
-  }
-  return { open };
+export default async function openWebSocket(
+  url: string,
+  delegate: ConnectionDelegate,
+): Promise<Connection> {
+  const ws = new WebSocket(url);
+  await eventPromise(ws, "open", "error");
+  return new WebSocketConnection(ws, delegate);
 }
 
 class WebSocketConnection implements Connection, Disposable {
-  private lastError: Error | undefined = undefined;
-
   constructor(private ws: WebSocket, private delegate: ConnectionDelegate) {
     ws.on("message", this.onMessage.bind(this));
     ws.on("error", this.onError.bind(this));
@@ -55,13 +47,14 @@ class WebSocketConnection implements Connection, Disposable {
     this.delegate.onMessage(msg);
   }
 
-  private onError(err: Error) {
-    this.lastError = err;
+  private onError(error: Error) {
+    // tslint:disable-next-line:no-console
+    console.log(error);
   }
 
   private onClose() {
     this.ws.removeAllListeners();
-    this.delegate.onDisconnect(this.lastError);
+    this.delegate.onDisconnect();
   }
 }
 

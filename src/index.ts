@@ -1,7 +1,5 @@
 import { Host } from "../types/host";
 
-export * from "./types";
-
 let defaultHost: Host | undefined;
 
 export function createDefaultHost(): Host {
