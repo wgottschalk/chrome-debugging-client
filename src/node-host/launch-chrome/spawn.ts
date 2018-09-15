@@ -1,8 +1,6 @@
-import { ChildProcess } from "child_process";
 import * as execa from "execa";
 import * as fs from "fs";
 import * as path from "path";
-import Disposable from "../../../types/disposable";
 import { ChromeProcess, ChromeSpawnOptions } from "../../../types/host";
 import { delay } from "../../shared/delay";
 import { DEFAULT_FLAGS } from "./flags";
@@ -10,45 +8,63 @@ import { DEFAULT_FLAGS } from "./flags";
 const PORT_FILENAME = "DevToolsActivePort";
 const NEWLINE = /\r?\n/;
 
-// roughly the same as the chromedriver chrome_launcher
-// https://chromium.googlesource.com/chromium/src/+/6fd4390daea50497e5ead4583829e2e8f9b215b2/chrome/test/chromedriver/chrome_launcher.cc#445
-// Launch chrome, wait for the DevToolsActivePort port file 60 second timeout polling on a 50ms interval.
-export default async function spawnBrowser(
+export default async function spawn<T>(
   executablePath: string,
   dataDir: string,
-  options?: ChromeSpawnOptions,
-): Promise<ChromeProcess & Disposable> {
-  const portFile = path.join(dataDir, PORT_FILENAME);
-  // delete port file before launching
-  await tryDeleteFile(portFile);
+  options: ChromeSpawnOptions,
+  using: (process: ChromeProcess) => PromiseLike<T> | T,
+) {
   const args = getArguments(dataDir, options);
-  const process: ChromeProcess & Disposable = new DisposableChromeProcess(
-    executablePath,
-    args,
-    options === undefined ? undefined : options.stdio,
-  );
-  const deadline = Date.now() + 60 * 1000;
-  try {
-    let port: number = 0;
-    let wsPath: string | undefined;
+  const stdio = options === undefined ? undefined : options.stdio;
+
+  const portFile = path.join(dataDir, PORT_FILENAME);
+  tryDeleteFile(portFile);
+
+  const child = execa(executablePath, args, {
+    // disable buffer, pipe or drain
+    buffer: false,
+    stdio,
+  } as any);
+
+  let cancelled = false;
+
+  // race lifetime promise against using promise
+  // normally we should not exit chrome before
+  const chrome = await Promise.race([
+    await waitForChromeExit(),
+    await waitForPortFile(),
+  ]);
+
+  return await using(chrome);
+
+  async function waitForChromeExit(): Promise<ChromeProcess> {
+    await child;
+    cancelled = true;
+    throw new Error("exited early");
+  }
+
+  async function waitForPortFile(): Promise<ChromeProcess> {
+    const deadline = Date.now() + 60 * 1000;
     while (true) {
       await delay(50);
-      [port, wsPath] = await tryReadPort(portFile);
-      process.validate();
-      if (port > 0) {
-        process.remoteDebuggingPort = port;
-        process.remoteDebuggingPath = wsPath;
-        process.dataDir = dataDir;
-        break;
+      const [remoteDebuggingPort, remoteDebuggingPath] = await tryReadPort(
+        portFile,
+      );
+      if (remoteDebuggingPort > 0) {
+        const webSocketDebuggerUrl = `ws://127.0.0.1:${remoteDebuggingPort}${remoteDebuggingPath}`;
+        return {
+          remoteDebuggingPath,
+          remoteDebuggingPort,
+          webSocketDebuggerUrl,
+        };
+      }
+      if (cancelled) {
+        throw new Error(`cancelled waiting for ${portFile}`);
       }
       if (Date.now() > deadline) {
         throw new Error(`timeout waiting for ${portFile}`);
       }
     }
-    return process;
-  } catch (err) {
-    await process.dispose();
-    throw err;
   }
 }
 
@@ -67,77 +83,6 @@ function getArguments(dataDir: string, options?: ChromeSpawnOptions): string[] {
     `--user-data-dir=${dataDir}`,
     `--window-size=${windowSize.width},${windowSize.height}`,
   ].concat(defaultArguments, additionalArguments, ["about:blank"]);
-}
-
-/* tslint:disable:max-classes-per-file */
-class DisposableChromeProcess implements ChromeProcess, Disposable {
-  public remoteDebuggingPort: number = 0;
-  public remoteDebuggingPath: string | undefined;
-  public dataDir: string;
-  public pid: number;
-
-  private process: ChildProcess;
-  private lastError: Error;
-  private hasExited: boolean = false;
-
-  constructor(
-    executablePath: string,
-    args: string[],
-    stdio: "pipe" | "ignore" | "inherit" | null = "inherit",
-  ) {
-    // the types aren't current for this
-    // disabling buffer used to be maxBuffer: null
-    // now it is buffer: false
-    const child = execa(executablePath, args, {
-      // disable buffer, pipe or drain
-      buffer: false,
-      stdio,
-    } as any);
-    // child is now a thenable for the duration of the promise
-    // ensure we handle its error or we will get an
-    // unhandled rejection warning
-    child.catch(err => (this.lastError = err));
-    child.on("exit", () => (this.hasExited = true));
-    this.process = child;
-    this.pid = child.pid;
-  }
-
-  public get webSocketDebuggerUrl() {
-    return `ws://127.0.0.1:${this.remoteDebuggingPort}${
-      this.remoteDebuggingPath
-    }`;
-  }
-
-  public dispose(): Promise<void> {
-    return new Promise<void>(resolve => {
-      if (this.hasExited) {
-        resolve();
-      } else {
-        this.process.on("exit", resolve);
-        this.process.kill();
-        // race
-        setTimeout(resolve, 2000);
-        setTimeout(() => this.process.kill("SIGKILL"), 2000);
-      }
-    })
-      .then(() => {
-        this.process.removeAllListeners();
-      })
-      .catch(err => {
-        /* tslint:disable:no-console */
-        console.error(err);
-        /* tslint:enable:no-console */
-      });
-  }
-
-  public validate() {
-    if (this.hasExited) {
-      throw new Error("process exited");
-    }
-    if (this.lastError) {
-      throw this.lastError;
-    }
-  }
 }
 
 function tryDeleteFile(filename: string): Promise<void> {

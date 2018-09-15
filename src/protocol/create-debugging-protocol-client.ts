@@ -4,15 +4,18 @@ import { EventEmitter } from "../../types/host";
 import Message from "../../types/message";
 import ProtocolClient from "../../types/protocol-client";
 
+type ResponseCallback = {
+  (error: Error): void;
+  (error: undefined, response: Message.Response): void;
+};
+
 export default async function createDebuggingProtocolClient(
   eventEmitter: EventEmitter,
   open: (delegate: ConnectionDelegate) => Promise<Connection & Disposable>,
 ): Promise<ProtocolClient> {
   let sequence = 0;
-  const pending = new Map<
-    number,
-    (err: Error | undefined, response?: Message.Response) => void
-  >();
+
+  const pending = new Map<number, ResponseCallback>();
 
   const connection = await open({
     onDisconnect,
@@ -34,7 +37,7 @@ export default async function createDebuggingProtocolClient(
     const data = JSON.stringify({ id, method, params });
 
     const responsePromise = new Promise<Message.Response>((resolve, reject) => {
-      pending.set(id, (err, message) => {
+      pending.set(id, (err: Error | undefined, message?: Message.Response) => {
         pending.delete(id);
         if (err !== undefined) {
           reject(err);

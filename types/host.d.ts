@@ -1,12 +1,23 @@
 import Disposable from "./disposable";
 import Connection, { ConnectionDelegate } from "./connection";
 
+export type UsingCallback<T, U> = (using: T) => PromiseLike<U> | U;
+
 export interface Host {
-  launchChrome(
-    options?: ChromeLaunchOptions,
-  ): Promise<ChromeProcess & Disposable>;
-  openWebSocket(url: string, delegate: ConnectionDelegate): Promise<Connection>;
+  launchChrome<T>(using: UsingCallback<ChromeProcess, T>): Promise<T>;
+  launchChrome<T>(
+    options: ChromeLaunchOptions,
+    using: UsingCallback<ChromeProcess, T>,
+  ): Promise<T>;
+
+  openWebSocket<T>(
+    url: string,
+    delegate: ConnectionDelegate,
+    using: UsingCallback<Connection, T>,
+  ): Promise<T>;
+
   createHttpClient(host: string, port: number): HttpClient;
+
   createEventEmitter(): EventEmitter;
 }
 
@@ -44,7 +55,4 @@ export interface ChromeProcess {
   remoteDebuggingPort: number;
   remoteDebuggingPath: string | undefined;
   webSocketDebuggerUrl: string | undefined;
-  dataDir: string;
-  /** throws if process has exited or there has been an error */
-  validate(): void;
 }

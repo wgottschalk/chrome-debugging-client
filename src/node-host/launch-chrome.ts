@@ -10,7 +10,7 @@ export default async function launchChrome(
   const executablePath = resolveBrowser(options);
   const tmpDir = await createTmpDir(options && options.userDataRoot);
 
-  this.disposables.add(tmpDir);
+  // this.disposables.add(tmpDir);
 
   const browserProcess = await spawnBrowser(
     executablePath,
@@ -18,7 +18,7 @@ export default async function launchChrome(
     options,
   );
 
-  this.disposables.add(browserProcess);
+  // this.disposables.add(browserProcess);
 
   return browserProcess;
 }
