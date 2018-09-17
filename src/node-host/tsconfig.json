@@ -4,10 +4,5 @@
     "outDir": "../../dist/node-host",
     "strict": true
   },
-  "include": ["**/*.ts"],
-  "references": [
-    {
-      "path": "../shared"
-    }
-  ]
+  "include": ["**/*.ts"]
 }

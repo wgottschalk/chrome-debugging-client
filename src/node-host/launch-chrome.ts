@@ -46,18 +46,10 @@ async function doLaunch<T>(
 ): Promise<T> {
   const args = await getArguments(userDataDir, options);
   const stdio = defaultOption(options, "stdio", "inherit");
-  return await spawnBrowser<T>(
-    executablePath,
-    args,
-    stdio,
-    async hasExited => {
-      const chrome = await waitForPortFile(userDataDir, hasExited);
-      return await using(chrome);
-    },
-    async () => {
-      // TODO option for gracefulExit
-    },
-  );
+  return await spawnBrowser<T>(executablePath, args, stdio, async hasExited => {
+    const chrome = await waitForPortFile(userDataDir, hasExited);
+    return await using(chrome);
+  });
 }
 
 function getArguments(

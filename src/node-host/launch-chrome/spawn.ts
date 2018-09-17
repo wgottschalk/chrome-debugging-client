@@ -5,9 +5,9 @@ export default async function spawn<T>(
   args: string[],
   stdio: "ignore" | "inherit",
   using: (hasExited: () => boolean) => Promise<T>,
-  gracefulExit: () => Promise<void>,
+  gracefulExit?: () => Promise<void>,
 ) {
-  const child = execa(executablePath, args, {
+  const childProcess = execa(executablePath, args, {
     // disable buffer, pipe or drain
     buffer: false,
     stdio,
@@ -19,7 +19,7 @@ export default async function spawn<T>(
     // race lifetime promise against using promise
     // normally we should not exit chrome before
     result = await Promise.race([
-      child.then(() => {
+      childProcess.then(() => {
         throw new Error("exited early");
       }),
       using(() => cancelled),
@@ -31,11 +31,22 @@ export default async function spawn<T>(
   try {
     return result;
   } finally {
+    await exitChrome(childProcess, gracefulExit);
+  }
+}
+
+async function exitChrome(
+  childProcess: execa.ExecaChildProcess,
+  gracefulExit?: () => Promise<void>,
+) {
+  if (gracefulExit) {
     // allow sending Browser.close to websocket
     await gracefulExit();
-
-    // TODO race timeout and kill()
-    // wait for lifetime promise
-    await child;
+  } else {
+    childProcess.kill();
   }
+
+  // wait for lifetime promise
+  // TODO race timeout and force kill
+  await childProcess;
 }
