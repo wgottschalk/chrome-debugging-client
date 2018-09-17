@@ -29,7 +29,7 @@ export type ChromeSpawnOptions = {
   disableDefaultArguments?: boolean;
   additionalArguments?: string[];
   userDataRoot?: string;
-  stdio?: "pipe" | "ignore" | "inherit" | null;
+  stdio?: "ignore" | "inherit";
 };
 
 export type ChromeResolveOptions = {

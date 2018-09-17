@@ -1,71 +1,71 @@
 import * as WebSocket from "ws";
 import Connection, { ConnectionDelegate } from "../../types/connection";
-import Disposable from "../../types/disposable";
-import { eventPromise } from "../shared/event-promise";
+import { UsingCallback } from "../../types/host";
 
-export default async function openWebSocket(
+export default async function openWebSocket<T>(
   url: string,
   delegate: ConnectionDelegate,
-): Promise<Connection> {
+  using: UsingCallback<Connection, T>,
+): Promise<T> {
   const ws = new WebSocket(url);
-  await eventPromise(ws, "open", "error");
-  return new WebSocketConnection(ws, delegate);
+  try {
+    return await Promise.race([
+      errorOrEarlyDisconnect<T>(ws),
+      useWebSocket<T>(ws, delegate, using),
+    ]);
+  } finally {
+    await tryClose(ws);
+    delegate.onDisconnect();
+  }
 }
 
-class WebSocketConnection implements Connection, Disposable {
-  constructor(private ws: WebSocket, private delegate: ConnectionDelegate) {
-    ws.on("message", this.onMessage.bind(this));
-    ws.on("error", this.onError.bind(this));
-    ws.on("close", this.onClose.bind(this));
-  }
+async function errorOrEarlyDisconnect<T>(ws: WebSocket): Promise<T> {
+  await new Promise((resolve, reject) => {
+    ws.once("error", reject);
+    ws.once("close", resolve);
+  });
+  throw new Error("early disconnect");
+}
 
-  public async send(message: string): Promise<void> {
-    await send(this.ws, message);
-  }
+async function useWebSocket<T>(
+  ws: WebSocket,
+  delegate: ConnectionDelegate,
+  using: UsingCallback<Connection, T>,
+): Promise<T> {
+  ws.on("message", (data: string) => {
+    delegate.onMessage(data);
+  });
 
-  public async close(): Promise<any> {
-    if (this.ws.readyState === WebSocket.CLOSED) {
-      return;
+  await new Promise(resolve => ws.once("open", resolve));
+
+  return await using({
+    send,
+  });
+
+  async function send(data: string) {
+    return await new Promise<void>((resolve, reject) =>
+      ws.send(data, err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      }),
+    );
+  }
+}
+
+async function tryClose(ws: WebSocket): Promise<void> {
+  try {
+    if (ws.readyState !== WebSocket.CLOSED) {
+      await new Promise(resolve => {
+        ws.once("close", resolve);
+        ws.close();
+      });
     }
-    this.ws.removeAllListeners();
-    const closePromise = eventPromise(this.ws, "close", "error");
-    this.ws.close();
-    await closePromise;
-  }
-
-  public async dispose(): Promise<any> {
-    try {
-      await this.close();
-    } catch (err) {
-      // ignore err since dispose is called in a finally
-      // tslint:disable-next-line:no-console
-      console.error(err);
-    }
-  }
-
-  private onMessage(msg: string) {
-    this.delegate.onMessage(msg);
-  }
-
-  private onError(error: Error) {
+  } catch (e) {
+    // TODO debug callback?
     // tslint:disable-next-line:no-console
-    console.log(error);
+    console.error(e);
   }
-
-  private onClose() {
-    this.ws.removeAllListeners();
-    this.delegate.onDisconnect();
-  }
-}
-
-function send(ws: WebSocket, data: string): Promise<void> {
-  return new Promise((resolve, reject) =>
-    ws.send(data, err => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    }),
-  );
 }
