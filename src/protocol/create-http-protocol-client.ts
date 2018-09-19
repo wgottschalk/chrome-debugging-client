@@ -1,5 +1,5 @@
-import { HttpClient } from "../../types/host";
 import HttpProtocolClient from "../../types/http-protocol-client";
+import { HttpClient } from "../../types/protocol-host";
 
 export default function createAPIClient(
   httpClient: HttpClient,

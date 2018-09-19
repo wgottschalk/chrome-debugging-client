@@ -1,21 +1,19 @@
 import * as WebSocket from "ws";
-import Connection, { ConnectionDelegate } from "../../types/connection";
-import { UsingCallback } from "../../types/host";
+import { ReceiveMessage, SendMessage } from "../../types/protocol-host";
 
 export default async function openWebSocket<T>(
   url: string,
-  delegate: ConnectionDelegate,
-  using: UsingCallback<Connection, T>,
+  receiveMessage: ReceiveMessage,
+  using: (sendMessage: SendMessage) => Promise<T>,
 ): Promise<T> {
   const ws = new WebSocket(url);
   try {
     return await Promise.race([
       errorOrEarlyDisconnect<T>(ws),
-      useWebSocket<T>(ws, delegate, using),
+      useWebSocket<T>(ws, receiveMessage, using),
     ]);
   } finally {
     await tryClose(ws);
-    delegate.onDisconnect();
   }
 }
 
@@ -29,20 +27,18 @@ async function errorOrEarlyDisconnect<T>(ws: WebSocket): Promise<T> {
 
 async function useWebSocket<T>(
   ws: WebSocket,
-  delegate: ConnectionDelegate,
-  using: UsingCallback<Connection, T>,
+  receiveMessage: ReceiveMessage,
+  using: (sendMessage: SendMessage) => Promise<T>,
 ): Promise<T> {
   ws.on("message", (data: string) => {
-    delegate.onMessage(data);
+    receiveMessage(data);
   });
 
   await new Promise(resolve => ws.once("open", resolve));
 
-  return await using({
-    send,
-  });
+  return await using(sendMessage);
 
-  async function send(data: string) {
+  async function sendMessage(data: string) {
     return await new Promise<void>((resolve, reject) =>
       ws.send(data, err => {
         if (err) {

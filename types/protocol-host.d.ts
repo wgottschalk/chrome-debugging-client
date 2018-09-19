@@ -1,19 +1,16 @@
-import Disposable from "./disposable";
-import Connection, { ConnectionDelegate } from "./connection";
-
-export type UsingCallback<T, U> = (using: T) => PromiseLike<U> | U;
+export type ReceiveMessage = (message: string) => void;
+export type SendMessage = (message: string) => Promise<void>;
 
 export interface Host {
-  launchChrome<T>(using: UsingCallback<ChromeProcess, T>): Promise<T>;
   launchChrome<T>(
     options: ChromeLaunchOptions,
-    using: UsingCallback<ChromeProcess, T>,
+    using: (using: ChromeProcess) => Promise<T>,
   ): Promise<T>;
 
   openWebSocket<T>(
     url: string,
-    delegate: ConnectionDelegate,
-    using: UsingCallback<Connection, T>,
+    receiveMessage: ReceiveMessage,
+    using: (sendMessage: SendMessage) => Promise<T>,
   ): Promise<T>;
 
   createHttpClient(host: string, port: number): HttpClient;

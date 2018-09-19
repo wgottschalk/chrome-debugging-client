@@ -1,6 +1,6 @@
 import { ProtocolMapping } from "devtools-protocol/types/protocol-mapping";
 
-export namespace ProtocolClient {
+export namespace DebuggingProtocolClient {
   export type Events = ProtocolMapping.Events & {
     disconnect: [Error?];
   };
@@ -49,40 +49,42 @@ export namespace ProtocolClient {
 /**
  * Chrome Remote Debugging Protocol Client
  */
-export interface ProtocolClient {
-  send<C extends ProtocolClient.CommandWithoutParams>(
+export interface DebuggingProtocolClient {
+  send<C extends DebuggingProtocolClient.CommandWithoutParams>(
     command: C,
-  ): Promise<ProtocolClient.CommandReturnType<C>>;
-  send<C extends ProtocolClient.CommandWithOptionalParams>(
+  ): Promise<DebuggingProtocolClient.CommandReturnType<C>>;
+  send<C extends DebuggingProtocolClient.CommandWithOptionalParams>(
     command: C,
-    params?: ProtocolClient.CommandParamsType<C>,
-  ): Promise<ProtocolClient.CommandReturnType<C>>;
-  send<C extends ProtocolClient.CommandWithRequiredParams>(
+    params?: DebuggingProtocolClient.CommandParamsType<C>,
+  ): Promise<DebuggingProtocolClient.CommandReturnType<C>>;
+  send<C extends DebuggingProtocolClient.CommandWithRequiredParams>(
     command: C,
-    params: ProtocolClient.CommandParamsType<C>,
-  ): Promise<ProtocolClient.CommandReturnType<C>>;
+    params: DebuggingProtocolClient.CommandParamsType<C>,
+  ): Promise<DebuggingProtocolClient.CommandReturnType<C>>;
 
-  until<E extends ProtocolClient.EventWithParams>(
+  until<E extends DebuggingProtocolClient.EventWithParams>(
     event: E,
-  ): Promise<ProtocolClient.EventParamsType<E>>;
-  until<E extends ProtocolClient.EventWithoutParams>(event: E): Promise<void>;
+  ): Promise<DebuggingProtocolClient.EventParamsType<E>>;
+  until<E extends DebuggingProtocolClient.EventWithoutParams>(
+    event: E,
+  ): Promise<void>;
 
-  on<E extends ProtocolClient.Event>(
+  on<E extends DebuggingProtocolClient.Event>(
     event: E,
-    listener: ProtocolClient.EventListener<E>,
+    listener: DebuggingProtocolClient.EventListener<E>,
   ): void;
 
-  once<E extends ProtocolClient.Event>(
+  once<E extends DebuggingProtocolClient.Event>(
     event: E,
-    listener: ProtocolClient.EventListener<E>,
+    listener: DebuggingProtocolClient.EventListener<E>,
   ): void;
 
-  removeListener<E extends ProtocolClient.Event>(
+  removeListener<E extends DebuggingProtocolClient.Event>(
     event: E,
-    listener: ProtocolClient.EventListener<E>,
+    listener: DebuggingProtocolClient.EventListener<E>,
   ): void;
 
-  removeAllListeners(event?: ProtocolClient.Event): void;
+  removeAllListeners(event?: DebuggingProtocolClient.Event): void;
 }
 
-export default ProtocolClient;
+export default DebuggingProtocolClient;

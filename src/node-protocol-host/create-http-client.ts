@@ -1,6 +1,5 @@
 import { ClientRequest, get, IncomingMessage } from "http";
-import { HttpClient } from "../../types/host";
-import { eventPromise } from "../shared/event-promise";
+import { HttpClient } from "../../types/protocol-host";
 
 export default function createHttpClient(
   host: string,
@@ -20,8 +19,11 @@ export default function createHttpClient(
   };
 }
 
-async function getResponse(request: ClientRequest): Promise<IncomingMessage> {
-  return eventPromise<IncomingMessage>(request, "response", "error");
+function getResponse(request: ClientRequest): Promise<IncomingMessage> {
+  return new Promise<IncomingMessage>((resolve, reject) => {
+    request.once("response", resolve);
+    request.once("error", reject);
+  });
 }
 
 async function readResponseBody(response: IncomingMessage): Promise<string> {
@@ -30,7 +32,10 @@ async function readResponseBody(response: IncomingMessage): Promise<string> {
   response.on("data", chunk => {
     body += chunk;
   });
-  await eventPromise(response, "end", "error");
+  await new Promise<IncomingMessage>((resolve, reject) => {
+    response.once("end", resolve);
+    response.once("error", reject);
+  });
   return body;
 }
 

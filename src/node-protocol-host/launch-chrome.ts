@@ -2,8 +2,7 @@ import {
   ChromeLaunchOptions,
   ChromeProcess,
   ChromeSpawnOptions,
-  UsingCallback,
-} from "../../types/host";
+} from "../../types/protocol-host";
 import createTmpDir from "./launch-chrome/create-tmpdir";
 import { DEFAULT_FLAGS } from "./launch-chrome/flags";
 import resolveBrowser from "./launch-chrome/resolve";
@@ -12,25 +11,8 @@ import waitForPortFile from "./launch-chrome/wait-for-portfile";
 
 export default async function launchChrome<T>(
   options: ChromeLaunchOptions,
-  using: UsingCallback<ChromeProcess, T>,
-): Promise<T>;
-export default async function launchChrome<T>(
-  using: UsingCallback<ChromeProcess, T>,
-): Promise<T>;
-export default async function launchChrome<T>(
-  maybeOptionsOrUsing: ChromeLaunchOptions | UsingCallback<ChromeProcess, T>,
-  maybeUsing?: UsingCallback<ChromeProcess, T>,
+  using: (using: ChromeProcess) => Promise<T>,
 ): Promise<T> {
-  let using: UsingCallback<ChromeProcess, T>;
-  let options: ChromeLaunchOptions | undefined;
-  if (maybeUsing !== undefined) {
-    using = maybeUsing;
-  }
-  if (typeof maybeOptionsOrUsing === "function") {
-    using = maybeOptionsOrUsing;
-  } else {
-    options = maybeOptionsOrUsing;
-  }
   const executablePath = resolveBrowser(options);
   const userDataRoot = options && options.userDataRoot;
   return await createTmpDir<T>(userDataRoot, userDataDir =>
@@ -42,7 +24,7 @@ async function doLaunch<T>(
   executablePath: string,
   userDataDir: string,
   options: ChromeLaunchOptions | undefined,
-  using: UsingCallback<ChromeProcess, T>,
+  using: (using: ChromeProcess) => Promise<T>,
 ): Promise<T> {
   const args = await getArguments(userDataDir, options);
   const stdio = defaultOption(options, "stdio", "inherit");

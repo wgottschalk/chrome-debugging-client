@@ -1,6 +1,6 @@
 import * as finder from "chrome-launcher/dist/chrome-finder";
 import { getPlatform } from "chrome-launcher/dist/utils";
-import { ChromeResolveOptions } from "../../../types/host";
+import { ChromeResolveOptions } from "../../../types/protocol-host";
 
 const CANARY_PATTERN = /Canary|unstable|SxS/i;
 
