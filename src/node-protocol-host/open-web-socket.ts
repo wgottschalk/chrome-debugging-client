@@ -1,5 +1,5 @@
 import * as WebSocket from "ws";
-import { ReceiveMessage, SendMessage } from "../../types/protocol-host";
+import { ReceiveMessage, SendMessage } from "../../types/connect";
 
 export default async function openWebSocket<T>(
   url: string,

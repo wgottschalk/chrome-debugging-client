@@ -1,9 +1,7 @@
 import { ProtocolMapping } from "devtools-protocol/types/protocol-mapping";
 
 export namespace DebuggingProtocolClient {
-  export type Events = ProtocolMapping.Events & {
-    disconnect: [Error?];
-  };
+  export type Events = ProtocolMapping.Events;
   export type Commands = ProtocolMapping.Commands;
 
   export type Command = keyof Commands;
@@ -85,6 +83,10 @@ export interface DebuggingProtocolClient {
   ): void;
 
   removeAllListeners(event?: DebuggingProtocolClient.Event): void;
+
+  disconnected: Promise<void>;
+
+  disconnect(): Promise<void>;
 }
 
 export default DebuggingProtocolClient;

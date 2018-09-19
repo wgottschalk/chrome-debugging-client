@@ -1,5 +1,4 @@
-export type ReceiveMessage = (message: string) => void;
-export type SendMessage = (message: string) => Promise<void>;
+import { ReceiveMessage, SendMessage } from "./connect";
 
 export interface Host {
   launchChrome<T>(
