@@ -4,10 +4,6 @@
     "outDir": "../dist",
     "types": ["node"]
   },
-  "exclude": ["test", "shared", "node-protocol-host", "protocol"],
-  "references": [
-    { "path": "shared" },
-    { "path": "node-protocol-host" },
-    { "path": "protocol" }
-  ]
+  "exclude": ["test", "node-protocol-host", "protocol"],
+  "references": [{ "path": "node-protocol-host" }, { "path": "protocol" }]
 }

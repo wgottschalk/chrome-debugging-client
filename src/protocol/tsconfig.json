@@ -4,6 +4,7 @@
     "outDir": "../../dist/protocol",
     "lib": ["scripthost", "es2017"],
     "typeRoots": [],
-    "types": []
+    "types": [],
+    "strict": true
   }
 }

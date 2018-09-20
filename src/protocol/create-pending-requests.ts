@@ -1,7 +1,7 @@
 export default function createPendingRequests<T>(): {
   responseFor: (
     sendRequest: (id: number) => Promise<void>,
-    disconnected: Promise<never>,
+    cancelled: Promise<never>,
   ) => Promise<T>;
   resolveRequest: (id: number, response: T) => void;
 } {
@@ -33,13 +33,13 @@ export default function createPendingRequests<T>(): {
 
   async function responseFor(
     sendRequest: (id: number) => Promise<void>,
-    disconnected: Promise<never>,
+    cancelled: Promise<never>,
   ) {
     const id = sequence++;
     try {
       const [response] = await Promise.race([
         Promise.all([responsePromise(id), sendRequest(id)]),
-        disconnected,
+        cancelled,
       ]);
       return response;
     } finally {

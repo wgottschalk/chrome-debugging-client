@@ -1,24 +1,20 @@
+import { Connect } from "../../types/connect";
 import DebuggingProtocolClient from "../../types/debugging-protocol-client";
 import { EventEmitter } from "../../types/protocol-host";
-import createDebuggingProtocol from "./create-debugging-protocol-connection";
+import createDebuggingProtocolConnection from "./create-debugging-protocol-connection";
 
 export async function createDebuggingProtocolClient(
   eventEmitter: EventEmitter,
-  connect: (
-    delegate: {
-      receive(message: string): void;
-    },
-  ) => Promise<{
-    disconnected: Promise<void>;
-    send: (messing: string) => Promise<void>;
-    disconnect: () => Promise<void>;
-  }>,
+  connect: Connect,
 ): Promise<DebuggingProtocolClient> {
   const emitEvent = (event: string, params?: any) => {
     eventEmitter.emit(event, params);
   };
 
-  const connection = await createDebuggingProtocol({ emitEvent }, connect);
+  const connection = await createDebuggingProtocolConnection(
+    emitEvent,
+    connect,
+  );
 
   const until = (event: string) =>
     Promise.race<any>([

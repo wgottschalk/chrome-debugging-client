@@ -1,67 +1,44 @@
 import * as WebSocket from "ws";
-import { ReceiveMessage, SendMessage } from "../../types/connect";
+import { Connect } from "../../types/connect";
 
-export default async function openWebSocket<T>(
-  url: string,
-  receiveMessage: ReceiveMessage,
-  using: (sendMessage: SendMessage) => Promise<T>,
-): Promise<T> {
-  const ws = new WebSocket(url);
-  try {
-    return await Promise.race([
-      errorOrEarlyDisconnect<T>(ws),
-      useWebSocket<T>(ws, receiveMessage, using),
-    ]);
-  } finally {
-    await tryClose(ws);
-  }
-}
+export default function openWebSocket(url: string): Connect {
+  return async receive => {
+    const ws = new WebSocket(url);
 
-async function errorOrEarlyDisconnect<T>(ws: WebSocket): Promise<T> {
-  await new Promise((resolve, reject) => {
-    ws.once("error", reject);
-    ws.once("close", resolve);
-  });
-  throw new Error("early disconnect");
-}
+    const disconnected = new Promise<void>((resolve, reject) => {
+      ws.once("error", reject);
+      ws.once("close", resolve);
+    });
 
-async function useWebSocket<T>(
-  ws: WebSocket,
-  receiveMessage: ReceiveMessage,
-  using: (sendMessage: SendMessage) => Promise<T>,
-): Promise<T> {
-  ws.on("message", (data: string) => {
-    receiveMessage(data);
-  });
+    ws.on("message", (message: string) => receive(message));
 
-  await new Promise(resolve => ws.once("open", resolve));
-
-  return await using(sendMessage);
-
-  async function sendMessage(data: string) {
-    return await new Promise<void>((resolve, reject) =>
-      ws.send(data, err => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
+    await Promise.race([
+      new Promise(resolve => ws.once("open", resolve)),
+      disconnected.then(() => {
+        throw new Error("disconnected before open");
       }),
-    );
-  }
-}
+    ]);
 
-async function tryClose(ws: WebSocket): Promise<void> {
-  try {
-    if (ws.readyState !== WebSocket.CLOSED) {
-      await new Promise(resolve => {
-        ws.once("close", resolve);
-        ws.close();
-      });
-    }
-  } catch (e) {
-    // TODO debug callback?
-    // tslint:disable-next-line:no-console
-    console.error(e);
-  }
+    const send = (message: string) => {
+      return new Promise<void>((resolve, reject) =>
+        ws.send(message, err => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        }),
+      );
+    };
+
+    const disconnect = async () => {
+      ws.close();
+    };
+
+    return {
+      disconnect,
+      disconnected,
+      send,
+    };
+  };
 }

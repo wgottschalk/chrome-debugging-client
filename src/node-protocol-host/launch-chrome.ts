@@ -1,75 +1,40 @@
-import {
-  ChromeLaunchOptions,
-  ChromeProcess,
-  ChromeSpawnOptions,
-} from "../../types/protocol-host";
+import { ChromeLaunchOptions } from "../../types/protocol-host";
 import createTmpDir from "./launch-chrome/create-tmpdir";
-import { DEFAULT_FLAGS } from "./launch-chrome/flags";
-import resolveBrowser from "./launch-chrome/resolve";
-import spawnBrowser from "./launch-chrome/spawn";
-import waitForPortFile from "./launch-chrome/wait-for-portfile";
+import findChrome from "./launch-chrome/find-chrome";
+import spawnChrome from "./launch-chrome/spawn-chrome";
 
-export default async function launchChrome<T>(
+export type Chrome = {
+  path: string;
+  port: number;
+  exited: Promise<void>;
+  exit: () => void;
+};
+
+export default async function launchChrome(
   options: ChromeLaunchOptions,
-  using: (using: ChromeProcess) => Promise<T>,
-): Promise<T> {
-  const executablePath = resolveBrowser(options);
-  const userDataRoot = options && options.userDataRoot;
-  return await createTmpDir<T>(userDataRoot, userDataDir =>
-    doLaunch<T>(executablePath, userDataDir, options, using),
-  );
-}
-
-async function doLaunch<T>(
-  executablePath: string,
-  userDataDir: string,
-  options: ChromeLaunchOptions | undefined,
-  using: (using: ChromeProcess) => Promise<T>,
-): Promise<T> {
-  const args = await getArguments(userDataDir, options);
-  const stdio = defaultOption(options, "stdio", "inherit");
-  return await spawnBrowser<T>(executablePath, args, stdio, async hasExited => {
-    const chrome = await waitForPortFile(userDataDir, hasExited);
-    return await using(chrome);
-  });
-}
-
-function getArguments(
-  userDataDir: string,
-  options?: ChromeSpawnOptions,
-): string[] {
-  const windowSize = defaultOption(options, "windowSize", {
-    height: 736,
-    width: 414,
-  });
-  const disableDefaultArguments = defaultOption(
-    options,
-    "disableDefaultArguments",
-    false,
-  );
-  const defaultArguments = disableDefaultArguments
-    ? ([] as string[])
-    : DEFAULT_FLAGS;
-  const additionalArguments: string[] = defaultOption(
-    options,
-    "additionalArguments",
-    [] as string[],
-  );
-  return [
-    "--remote-debugging-port=0",
-    `--user-data-dir=${userDataDir}`,
-    `--window-size=${windowSize.width},${windowSize.height}`,
-  ].concat(defaultArguments, additionalArguments, ["about:blank"]);
-}
-
-function defaultOption<K extends keyof ChromeLaunchOptions>(
-  options: ChromeLaunchOptions | undefined,
-  option: K,
-  defaultValue: Required<ChromeLaunchOptions>[K],
-): Required<ChromeLaunchOptions>[K] {
-  const value = options === undefined ? undefined : options[option];
-  if (value === undefined) {
-    return defaultValue;
+): Promise<Chrome> {
+  const chromePath = findChrome();
+  const tmpDir = createTmpDir(options && options.userDataRoot);
+  try {
+    const { exit, path, port, exited } = await spawnChrome(
+      chromePath,
+      tmpDir.name,
+      options,
+    );
+    return {
+      exit,
+      exited: (async () => {
+        try {
+          await exited;
+        } finally {
+          tmpDir.removeCallback();
+        }
+      })(),
+      path,
+      port,
+    };
+  } catch (e) {
+    tmpDir.removeCallback();
+    throw e;
   }
-  return value as Required<ChromeLaunchOptions>[K];
 }

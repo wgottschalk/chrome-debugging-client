@@ -1,49 +1,37 @@
-import Message from "../../types/message";
+import { Connect, Connection } from "../../types/connect";
 import createPendingRequests from "./create-pending-requests";
 import createProtocolError from "./create-protocol-error";
 
+export type EmitEvent = (event: string, params?: object) => void;
+export type SendCommand = (method: string, params?: object) => Promise<object>;
+
 export default async function createDebuggingProtocolConnection(
-  delegate: {
-    emitEvent: (event: string, params?: any) => void;
-  },
-  connect: (
-    delegate: {
-      receive(message: string): void;
-    },
-  ) => Promise<{
-    disconnected: Promise<void>;
-    send: (messing: string) => Promise<void>;
-    disconnect: () => Promise<void>;
-  }>,
-): Promise<{
-  disconnected: Promise<void>;
-  send(command: string, params?: any): Promise<any>;
-  disconnect(): Promise<void>;
-}> {
-  const pending = createPendingRequests<Message.Response>();
+  emitEvent: EmitEvent,
+  connect: Connect,
+): Promise<Connection<SendCommand>> {
+  const pending = createPendingRequests<Response>();
 
   const receive = (data: string) => {
-    const message: Message = JSON.parse(data);
+    const message = parse(data);
     if ("id" in message) {
       pending.resolveRequest(message.id, message);
     } else {
-      delegate.emitEvent(message.method, message.params);
+      emitEvent(message.method, message.params);
     }
   };
 
-  const connection = await connect({
-    receive,
-  });
+  const connection = await connect(receive);
 
-  const send = async (method: string, params?: any) => {
+  const send = async (method: string, params: object = {}) => {
     const response = await pending.responseFor(
-      id => connection.send(JSON.stringify({ id, method, params })),
+      id => connection.send(serialize(id, method, params)),
       connection.disconnected.then(() => {
         throw new Error(`disconnected before ${method} response`);
       }),
     );
     if ("error" in response) {
-      throw createProtocolError(response.error);
+      const { message, code, data } = response.error;
+      throw createProtocolError(message, code, data);
     }
     return response.result;
   };
@@ -54,3 +42,35 @@ export default async function createDebuggingProtocolConnection(
     send,
   };
 }
+
+function parse(message: string): Message {
+  return JSON.parse(message);
+}
+
+function serialize(id: number, method: string, params: object): string {
+  return JSON.stringify({ id, method, params });
+}
+
+type Event = {
+  method: string;
+  params: object;
+};
+
+type SuccessResponse = {
+  id: number;
+  result: object;
+};
+
+type ErrorResponse = {
+  id: number;
+  error: ResponseError;
+};
+
+type ResponseError = {
+  code: number;
+  message: string;
+  data?: string;
+};
+
+type Response = SuccessResponse | ErrorResponse;
+type Message = Event | Response;

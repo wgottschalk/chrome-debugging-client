@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.shared.json",
   "compilerOptions": {
     "outDir": "../../dist/node-protocol-host",
-    "strict": true
+    "strict": true,
+    "types": ["node"],
+    "lib": ["es2015"]
   },
   "include": ["**/*.ts"]
 }

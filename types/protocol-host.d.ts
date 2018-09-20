@@ -1,23 +1,17 @@
-import { ReceiveMessage, SendMessage } from "./connect";
+import Connect from "./connect";
 
-export interface Host {
-  launchChrome<T>(
-    options: ChromeLaunchOptions,
-    using: (using: ChromeProcess) => Promise<T>,
-  ): Promise<T>;
+export interface ProtocolHost {
+  launchChrome(options: ChromeLaunchOptions): Promise<Chrome>;
 
-  openWebSocket<T>(
-    url: string,
-    receiveMessage: ReceiveMessage,
-    using: (sendMessage: SendMessage) => Promise<T>,
-  ): Promise<T>;
+  openWebSocket(url: string): Connect;
 
   createHttpClient(host: string, port: number): HttpClient;
 
   createEventEmitter(): EventEmitter;
 }
 
-export type ChromeSpawnOptions = {
+export type ChromeLaunchOptions = {
+  chromePath?: string;
   windowSize?: {
     width: number;
     height: number;
@@ -27,13 +21,6 @@ export type ChromeSpawnOptions = {
   userDataRoot?: string;
   stdio?: "ignore" | "inherit";
 };
-
-export type ChromeResolveOptions = {
-  browserType?: "system" | "canary" | "exact";
-  executablePath?: string;
-};
-
-export type ChromeLaunchOptions = ChromeResolveOptions & ChromeSpawnOptions;
 
 export interface EventEmitter {
   on(event: string, listener: (params?: any) => void): void;
@@ -47,8 +34,9 @@ export interface HttpClient {
   get(path: string): Promise<string>;
 }
 
-export interface ChromeProcess {
-  remoteDebuggingPort: number;
-  remoteDebuggingPath: string | undefined;
-  webSocketDebuggerUrl: string | undefined;
-}
+export type Chrome = {
+  path: string;
+  port: number;
+  exited: Promise<void>;
+  exit: () => void;
+};

@@ -6,43 +6,35 @@ const NEWLINE = /\r?\n/;
 
 export default async function waitForPortFile(
   userDataDir: string,
-  isCancellationRequested: () => boolean,
-): Promise<{
-  remoteDebuggingPath: string;
-  remoteDebuggingPort: number;
-  webSocketDebuggerUrl: string;
-}> {
+  cancelled: Promise<never>,
+): Promise<[number, string]> {
   const portFile = join(userDataDir, PORT_FILENAME);
+
   const deadline = Date.now() + 60 * 1000;
   while (true) {
-    await delay(50);
-    const [remoteDebuggingPort, remoteDebuggingPath] = tryReadPort(portFile);
-    if (remoteDebuggingPort > 0) {
-      const webSocketDebuggerUrl = `ws://127.0.0.1:${remoteDebuggingPort}${remoteDebuggingPath}`;
-      return {
-        remoteDebuggingPath,
-        remoteDebuggingPort,
-        webSocketDebuggerUrl,
-      };
+    await Promise.race([delay(50), cancelled]);
+
+    const text = tryRead(portFile);
+
+    if (text !== undefined) {
+      const [portStr, path] = text.split(NEWLINE, 2);
+      const port = parseInt(portStr, 10);
+      if (port > 0) {
+        return [port, path];
+      }
     }
-    if (isCancellationRequested()) {
-      throw new Error(`cancelled waiting for ${portFile}`);
-    }
+
     if (Date.now() > deadline) {
       throw new Error(`timeout waiting for ${portFile}`);
     }
   }
 }
 
-function tryReadPort(filename: string): [number, string] {
+function tryRead(filename: string): string | undefined {
   try {
-    const data = readFileSync(filename, "utf8");
-    const [portStr, wsPath] = data.split(NEWLINE, 2);
-    const port = parseInt(portStr, 10);
-    // handles NaN if write was created but port not written
-    return port > 0 ? [port, wsPath] : [0, wsPath];
+    return readFileSync(filename, "utf8");
   } catch (e) {
-    return [0, ""];
+    // ignore
   }
 }
 
