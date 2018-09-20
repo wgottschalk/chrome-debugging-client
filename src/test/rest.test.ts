@@ -1,5 +1,5 @@
 import test from "ava";
-import { createSession } from "../index";
+import { spawnChrome, createRestClient } from "../index";
 
 const additionalArguments = [
   "--headless",
@@ -10,30 +10,30 @@ const additionalArguments = [
 ];
 
 test("test REST API", async t => {
-  await createSession(async session => {
-    const browser = await session.spawnBrowser({
-      additionalArguments,
-      stdio: "ignore",
-      windowSize: { width: 320, height: 640 },
-    });
-    const apiClient = session.createAPIClient(
-      "localhost",
-      browser.remoteDebuggingPort,
-    );
-    const version = await apiClient.version();
+  const chrome = await spawnChrome({
+    additionalArguments,
+    stdio: "inherit",
+    windowSize: { width: 320, height: 640 },
+  });
+  try {
+    const client = createRestClient("127.0.0.1", chrome.port);
+    const version = await client.version();
     t.truthy(version["Protocol-Version"], "has Protocol-Version");
     t.truthy(version["User-Agent"], "has User-Agent");
-    const tab = await apiClient.newTab();
-    t.truthy(tab, "newTab returned a tab");
-    t.truthy(tab.id, "tab has id");
-    await apiClient.activateTab(tab.id);
-    const tabs = await apiClient.listTabs();
-    t.truthy(tabs, "listTabs returned tabs");
-    t.true(Array.isArray(tabs), "tabs isArray");
+    const target = await client.open();
+    t.truthy(target, "open returned a new target");
+    t.truthy(target.id, "target has id");
+    await client.activate(target.id);
+    const targets = await client.list();
+    t.truthy(targets, "list returned targets");
+    t.true(Array.isArray(targets), "targets isArray");
     t.truthy(
-      tabs.find(other => other.id === tab.id),
-      "tabs from listTabs contains tab from newTab",
+      targets.find(other => other.id === target.id),
+      "targets from list contains target from open",
     );
-    await apiClient.closeTab(tab.id);
-  });
+    await client.close(target.id);
+  } finally {
+    chrome.exit();
+    await chrome.exited;
+  }
 });

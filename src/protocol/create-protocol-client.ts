@@ -3,7 +3,7 @@ import ProtocolClient from "../../types/protocol-client";
 import { EventEmitter } from "../../types/protocol-host";
 import createProtocolConnection from "./create-protocol-connection";
 
-export async function createProtocolClient(
+export default async function createProtocolClient(
   eventEmitter: EventEmitter,
   connect: Connect,
 ): Promise<ProtocolClient> {

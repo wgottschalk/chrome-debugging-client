@@ -1,77 +1,24 @@
-import ProtocolClient from "../types/protocol-client";
-import { ProtocolHost } from "../types/protocol-host";
+// import ProtocolClient from "../types/protocol-client";
+import defaultHost from "./default-host";
+import _createProtocolClient from "./protocol/create-protocol-client";
 import _createRestClient from "./protocol/create-rest-client";
 
-declare const require: (mod: string) => any;
-
-const defaultHost = (() => {
-  let host: ProtocolHost | undefined;
-  return () => {
-    if (host === undefined) {
-      host = require("./node-protocol-host") as ProtocolHost;
-    }
-    return host;
-  };
-})();
+export { default as spawnChrome } from "./spawn-chrome";
 
 export function createRestClient(
-  hostname: string,
+  host: string,
   port: number,
-  host: ProtocolHost = defaultHost(),
+  createHttpGet = defaultHost().createHttpGet,
 ) {
-  return _createRestClient(host.createHttpGet(hostname, port));
+  return _createRestClient(createHttpGet(host, port));
 }
 
-export function createDebuggingProtocolClient<T>(
-  _webSocketUrl: string,
-  _using: (using: ProtocolClient) => Promise<T>,
-  _host: ProtocolHost = defaultHost(),
+export async function createProtocolClient(
+  wsUrl: string,
+  createEventEmitter = defaultHost().createEventEmitter,
+  createWebSocket = defaultHost().createWebSocket,
 ) {
-  // _createDebuggingProtocolClient(host.createEventEmitter(), delegate => {});
-  // host.openWebSocket(webSocketUrl, dele);
-  throw new Error("not implemented");
+  const eventEmitter = createEventEmitter();
+  const connect = createWebSocket(wsUrl);
+  return await _createProtocolClient(eventEmitter, connect);
 }
-
-// export default async function launchChrome<T>(
-//   options: ChromeLaunchOptions,
-//   using: (using: Chrome) => Promise<T>,
-//   host?: ProtocolHost,
-// ): Promise<T>;
-// export default async function launchChrome<T>(
-//   using: (using: Chrome) => Promise<T>,
-//   host?: ProtocolHost,
-// ): Promise<T>;
-// export default async function launchChrome<T>(
-//   _maybeOptionsOrUsing: ChromeLaunchOptions | ((using: Chrome) => Promise<T>),
-//   _maybeUsingOrHost?: ((using: Chrome) => Promise<T>) | ProtocolHost,
-//   _maybeHost?: ProtocolHost,
-// ): Promise<T> {
-//   let options: ChromeLaunchOptions | undefined;
-//   let host: ProtocolHost | undefined;
-//   let using: ((using: Chrome) => Promise<T>) | undefined;
-//   if (_maybeHost !== undefined) {
-//     host = _maybeHost;
-//   }
-//   if (_maybeUsingOrHost !== undefined) {
-//     if (typeof _maybeUsingOrHost === "function") {
-//       using = _maybeUsingOrHost;
-//     } else {
-//       host = _maybeUsingOrHost;
-//     }
-//   }
-//   if (typeof _maybeOptionsOrUsing === "function") {
-//     using = _maybeOptionsOrUsing;
-//   } else {
-//     options = _maybeOptionsOrUsing;
-//   }
-//   if (options === undefined) {
-//     options = {};
-//   }
-//   if (host === undefined) {
-//     host = defaultHost();
-//   }
-//   if (using === undefined) {
-//     throw new Error("using callback required");
-//   }
-//   return await host.launchChrome(options, using);
-// }

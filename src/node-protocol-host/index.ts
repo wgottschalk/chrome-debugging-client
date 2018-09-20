@@ -1,14 +1,18 @@
 import { ProtocolHost } from "../../types/protocol-host";
 import createEventEmitter from "./create-event-emitter";
 import createHttpGet from "./create-http-get";
+import createTmpDir from "./create-tmp-dir";
 import createWebSocket from "./create-web-socket";
-import launchChrome from "./launch-chrome";
+import findChrome from "./find-chrome";
+import spawnChrome from "./spawn-chrome";
 
 const host: ProtocolHost = {
   createEventEmitter,
   createHttpGet,
+  createTmpDir,
   createWebSocket,
-  launchChrome,
+  findChrome,
+  spawnChrome,
 };
 
 export = host;

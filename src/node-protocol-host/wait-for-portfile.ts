@@ -1,6 +1,8 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 
+const TIMEOUT = 60 * 1000;
+const INTERVAL = 50;
 const PORT_FILENAME = "DevToolsActivePort";
 const NEWLINE = /\r?\n/;
 
@@ -10,9 +12,9 @@ export default async function waitForPortFile(
 ): Promise<[number, string]> {
   const portFile = join(userDataDir, PORT_FILENAME);
 
-  const deadline = Date.now() + 60 * 1000;
+  const deadline = Date.now() + TIMEOUT;
   while (true) {
-    await Promise.race([delay(50), cancelled]);
+    await Promise.race([delay(INTERVAL), cancelled]);
 
     const text = tryRead(portFile);
 
@@ -38,6 +40,6 @@ function tryRead(filename: string): string | undefined {
   }
 }
 
-export function delay(ms: number): Promise<any> {
+export function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }

@@ -1,7 +1,14 @@
 {
-  "extends": "../../shared.tsconfig.json",
+  "extends": "../../tsconfig.shared.json",
   "compilerOptions": {
-    "outDir": "../../dist/test"
+    "outDir": "../../dist/test",
+    "types": ["node", "ava"],
+    "lib": ["es2017"]
   },
-  "include": ["*.test.ts"]
+  "include": ["rest.test.ts"],
+  "references": [
+    {
+      "path": ".."
+    }
+  ]
 }

@@ -2,7 +2,7 @@
   "extends": "../tsconfig.shared.json",
   "compilerOptions": {
     "outDir": "../dist",
-    "types": ["node"]
+    "types": []
   },
   "exclude": ["test", "node-protocol-host", "protocol"],
   "references": [{ "path": "node-protocol-host" }, { "path": "protocol" }]
