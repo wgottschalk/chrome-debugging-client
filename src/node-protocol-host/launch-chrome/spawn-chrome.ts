@@ -1,6 +1,6 @@
 import * as execa from "execa";
 import { Chrome, ChromeLaunchOptions } from "../../../types/protocol-host";
-import { DEFAULT_FLAGS } from "./flags";
+import { DEFAULT_FLAGS } from "./default-flags";
 import waitForPortFile from "./wait-for-portfile";
 
 export default async function spawnChrome(

@@ -1,6 +1,6 @@
-import DebuggingProtocolClient from "../types/debugging-protocol-client";
+import ProtocolClient from "../types/protocol-client";
 import { ProtocolHost } from "../types/protocol-host";
-import _createHttpProtocolClient from "./protocol/create-http-protocol-client";
+import _createRestClient from "./protocol/create-rest-client";
 
 declare const require: (mod: string) => any;
 
@@ -14,17 +14,17 @@ const defaultHost = (() => {
   };
 })();
 
-export function createHttpProtocolClient(
+export function createRestClient(
   hostname: string,
   port: number,
   host: ProtocolHost = defaultHost(),
 ) {
-  return _createHttpProtocolClient(host.createHttpClient(hostname, port));
+  return _createRestClient(host.createHttpGet(hostname, port));
 }
 
 export function createDebuggingProtocolClient<T>(
   _webSocketUrl: string,
-  _using: (using: DebuggingProtocolClient) => Promise<T>,
+  _using: (using: ProtocolClient) => Promise<T>,
   _host: ProtocolHost = defaultHost(),
 ) {
   // _createDebuggingProtocolClient(host.createEventEmitter(), delegate => {});

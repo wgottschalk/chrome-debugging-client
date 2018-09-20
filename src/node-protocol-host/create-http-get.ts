@@ -1,21 +1,16 @@
 import { ClientRequest, get, IncomingMessage } from "http";
-import { HttpClient } from "../../types/protocol-host";
+import { HttpGet } from "../../types/protocol-host";
 
-export default function createHttpClient(
-  host: string,
-  port: number,
-): HttpClient {
-  return {
-    async get(path: string): Promise<string> {
-      const request = get({ host, port, path });
-      const response = await getResponse(request);
-      const statusCode = response.statusCode;
-      const body = await readResponseBody(response);
-      if (typeof statusCode === "number" && statusCode !== 200) {
-        throw new ResponseError(body, statusCode);
-      }
-      return body;
-    },
+export default function createHttpGet(host: string, port: number): HttpGet {
+  return async (path: string) => {
+    const request = get({ host, port, path });
+    const response = await getResponse(request);
+    const statusCode = response.statusCode;
+    const body = await readResponseBody(response);
+    if (typeof statusCode === "number" && statusCode !== 200) {
+      throw new ResponseError(body, statusCode);
+    }
+    return body;
   };
 }
 

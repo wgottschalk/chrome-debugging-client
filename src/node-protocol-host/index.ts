@@ -1,18 +1,14 @@
-import { EventEmitter as NodeEventEmitter } from "events";
-import { EventEmitter, ProtocolHost } from "../../types/protocol-host";
-import createHttpClient from "./create-http-client";
+import { ProtocolHost } from "../../types/protocol-host";
+import createEventEmitter from "./create-event-emitter";
+import createHttpGet from "./create-http-get";
+import createWebSocket from "./create-web-socket";
 import launchChrome from "./launch-chrome";
-import openWebSocket from "./open-web-socket";
-
-function createEventEmitter(): EventEmitter {
-  return new NodeEventEmitter();
-}
 
 const host: ProtocolHost = {
   createEventEmitter,
-  createHttpClient,
+  createHttpGet,
+  createWebSocket,
   launchChrome,
-  openWebSocket,
 };
 
 export = host;

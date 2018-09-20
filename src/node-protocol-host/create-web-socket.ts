@@ -1,7 +1,7 @@
 import * as WebSocket from "ws";
 import { Connect } from "../../types/connect";
 
-export default function openWebSocket(url: string): Connect {
+export default function createWebSocket(url: string): Connect {
   return async receive => {
     const ws = new WebSocket(url);
 

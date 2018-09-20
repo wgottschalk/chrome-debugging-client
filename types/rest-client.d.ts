@@ -1,4 +1,4 @@
-export namespace ProtocolClient {
+export namespace RestClient {
   export type Target = Record<
     | "description"
     | "devtoolsFrontendUrl"
@@ -24,12 +24,12 @@ export namespace ProtocolClient {
     };
 }
 
-export interface ProtocolClient {
-  version(): Promise<ProtocolClient.Version>;
-  list(): Promise<ProtocolClient.Target[]>;
-  open(url?: string): Promise<ProtocolClient.Target>;
+export interface RestClient {
+  version(): Promise<RestClient.Version>;
+  list(): Promise<RestClient.Target[]>;
+  open(url?: string): Promise<RestClient.Target>;
   activate(id: string): Promise<void>;
   close(id: string): Promise<void>;
 }
 
-export default ProtocolClient;
+export default RestClient;

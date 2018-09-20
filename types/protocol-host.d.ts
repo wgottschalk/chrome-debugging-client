@@ -3,9 +3,9 @@ import Connect from "./connect";
 export interface ProtocolHost {
   launchChrome(options: ChromeLaunchOptions): Promise<Chrome>;
 
-  openWebSocket(url: string): Connect;
+  createWebSocket(url: string): Connect;
 
-  createHttpClient(host: string, port: number): HttpClient;
+  createHttpGet(host: string, port: number): HttpGet;
 
   createEventEmitter(): EventEmitter;
 }
@@ -30,9 +30,7 @@ export interface EventEmitter {
   emit(event: string, params?: any): void;
 }
 
-export interface HttpClient {
-  get(path: string): Promise<string>;
-}
+export type HttpGet = (path: string) => Promise<string>;
 
 export type Chrome = {
   path: string;
