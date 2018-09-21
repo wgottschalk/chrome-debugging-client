@@ -65,19 +65,31 @@ export interface ProtocolClient {
   ): Promise<ProtocolClient.EventParamsType<E>>;
   until<E extends ProtocolClient.EventWithoutParams>(event: E): Promise<void>;
 
-  on<E extends ProtocolClient.Event>(
+  on<E extends ProtocolClient.EventWithoutParams>(
     event: E,
-    listener: ProtocolClient.EventListener<E>,
+    listener: () => void,
+  ): void;
+  on<E extends ProtocolClient.EventWithParams>(
+    event: E,
+    listener: (params: ProtocolClient.EventParamsType<E>) => void,
   ): void;
 
-  once<E extends ProtocolClient.Event>(
+  once<E extends ProtocolClient.EventWithoutParams>(
     event: E,
-    listener: ProtocolClient.EventListener<E>,
+    listener: () => void,
+  ): void;
+  once<E extends ProtocolClient.EventWithParams>(
+    event: E,
+    listener: (params: ProtocolClient.EventParamsType<E>) => void,
   ): void;
 
-  removeListener<E extends ProtocolClient.Event>(
+  removeListener<E extends ProtocolClient.EventWithoutParams>(
     event: E,
-    listener: ProtocolClient.EventListener<E>,
+    listener: () => void,
+  ): void;
+  removeListener<E extends ProtocolClient.EventWithParams>(
+    event: E,
+    listener: (params: ProtocolClient.EventParamsType<E>) => void,
   ): void;
 
   removeAllListeners(event?: ProtocolClient.Event): void;

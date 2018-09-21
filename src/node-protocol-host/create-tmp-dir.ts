@@ -2,6 +2,9 @@ import * as tmp from "tmp";
 
 tmp.setGracefulCleanup();
 
+// tslint:disable-next-line:no-var-requires
+const debug: (message: string) => void = require("debug")("chrome-debugging-client");
+
 export default function createTmpDir(
   dir?: string,
 ): {
@@ -17,6 +20,12 @@ export default function createTmpDir(
   const tmpDir = tmp.dirSync(options);
   return {
     dir: tmpDir.name,
-    dispose: tmpDir.removeCallback,
+    dispose: () => {
+      try {
+        tmpDir.removeCallback();
+      } catch (e) {
+        debug(`error removing "${tmpDir.name}": ${e}`);
+      }
+    },
   };
 }

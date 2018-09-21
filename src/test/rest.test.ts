@@ -1,5 +1,5 @@
 import test from "ava";
-import { spawnChrome, createRestClient } from "../index";
+import { createRestClient, spawnChrome } from "../index";
 
 const additionalArguments = [
   "--headless",
@@ -10,9 +10,10 @@ const additionalArguments = [
 ];
 
 test("test REST API", async t => {
+  t.plan(7);
   const chrome = await spawnChrome({
     additionalArguments,
-    stdio: "inherit",
+    stdio: "ignore",
     windowSize: { width: 320, height: 640 },
   });
   try {
@@ -33,7 +34,6 @@ test("test REST API", async t => {
     );
     await client.close(target.id);
   } finally {
-    chrome.exit();
-    await chrome.exited;
+    await chrome.dispose();
   }
 });

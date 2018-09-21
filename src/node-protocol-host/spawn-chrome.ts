@@ -2,6 +2,9 @@ import * as execa from "execa";
 import { Chrome } from "../../types/protocol-host";
 import waitForPortFile from "./wait-for-portfile";
 
+// tslint:disable-next-line:no-var-requires
+const debug: (message: string) => void = require("debug")("chrome-debugging-client");
+
 export default async function spawnChrome(
   chromePath: string,
   userDataDir: string,
@@ -36,10 +39,6 @@ export default async function spawnChrome(
     });
   });
 
-  const exit = () => {
-    child.kill();
-  };
-
   const cancelled = exited.then(() => {
     throw Error("early exit of chrome");
   });
@@ -50,8 +49,18 @@ export default async function spawnChrome(
   ]);
 
   return {
-    exit,
     exited,
+    kill() {
+      child.kill();
+    },
+    async dispose() {
+      try {
+        this.kill();
+        await this.exited;
+      } catch (e) {
+        debug(`error killing chrome: ${e}`);
+      }
+    },
     path,
     port,
   };

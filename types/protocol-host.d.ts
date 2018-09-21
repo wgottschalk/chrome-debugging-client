@@ -49,7 +49,9 @@ export type Chrome = {
    *
    * You can await the exited promise to wait for Chrome to exit.
    */
-  exit: () => void;
+  kill(): void;
+
+  dispose(): Promise<void>;
 };
 
 export interface EventEmitter {

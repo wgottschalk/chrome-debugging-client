@@ -5,7 +5,11 @@
     "types": ["node", "ava"],
     "lib": ["es2017"]
   },
-  "include": ["rest.test.ts"],
+  "include": [
+    "node.test.ts",
+    "rest.test.ts",
+    "protocol.test.ts"
+  ],
   "references": [
     {
       "path": ".."

@@ -25,14 +25,14 @@ export default async function spawnChrome(
   try {
     const args = getArguments(tmpDir.dir, options);
     const stdio = defaultOption(options, "stdio", "inherit");
-    const { exit, path, port, exited } = await _spawnChrome(
+    const { dispose, kill, path, port, exited } = await _spawnChrome(
       chromePath,
       tmpDir.dir,
       args,
       stdio,
     );
     return {
-      exit,
+      dispose,
       exited: (async () => {
         try {
           await exited;
@@ -40,6 +40,7 @@ export default async function spawnChrome(
           tmpDir.dispose();
         }
       })(),
+      kill,
       path,
       port,
     };

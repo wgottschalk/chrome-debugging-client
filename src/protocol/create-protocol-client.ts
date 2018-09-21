@@ -15,7 +15,9 @@ export default async function createProtocolClient(
 
   const until = (event: string) =>
     Promise.race<any>([
-      new Promise(resolve => eventEmitter.once(event, resolve)),
+      new Promise(resolve => {
+        eventEmitter.once(event, resolve);
+      }),
       connection.disconnected.then(() => {
         throw new Error(`disconnected before ${event} event occurred`);
       }),
