@@ -40,6 +40,7 @@ export default async function createProtocolClient(
   return {
     disconnect: connection.disconnect,
     disconnected: connection.disconnected,
+    dispose: connection.dispose,
     on,
     once,
     removeAllListeners,

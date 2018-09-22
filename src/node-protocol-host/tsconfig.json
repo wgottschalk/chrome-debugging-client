@@ -2,8 +2,7 @@
   "extends": "../../tsconfig.shared.json",
   "compilerOptions": {
     "outDir": "../../dist/node-protocol-host",
-    "strict": true,
-    "types": ["node"],
+    "types": ["node", "debug", "tmp", "ws"],
     "lib": ["scripthost", "es2017"]
   },
   "include": [

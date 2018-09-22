@@ -97,6 +97,8 @@ export interface ProtocolClient {
   disconnected: Promise<void>;
 
   disconnect(): Promise<void>;
+
+  dispose(): Promise<void>;
 }
 
 export default ProtocolClient;

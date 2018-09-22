@@ -3,5 +3,5 @@
     "composite": true
   },
   "files": [],
-  "references": [{ "path": "src" }, { "path": "src/test" }]
+  "references": [{ "path": "src/test" }]
 }

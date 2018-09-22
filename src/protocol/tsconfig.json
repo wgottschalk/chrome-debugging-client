@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.shared.json",
   "compilerOptions": {
     "outDir": "../../dist/protocol",
-    "lib": ["scripthost", "es5", "es2015", "es2017"],
+    "lib": ["scripthost", "es2017"],
     "typeRoots": [],
     "types": [],
     "strict": true

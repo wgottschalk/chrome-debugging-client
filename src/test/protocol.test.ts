@@ -31,8 +31,7 @@ test("test debugging protocol domains", async t => {
       const data = JSON.parse(buffer);
       t.truthy(data.snapshot.meta, "has snapshot");
     } finally {
-      await client.disconnect();
-      await client.disconnected;
+      await client.dispose();
     }
   } finally {
     await chrome.dispose();

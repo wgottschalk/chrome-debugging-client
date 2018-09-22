@@ -1,9 +1,9 @@
+import createDebug = require("debug");
 import * as tmp from "tmp";
 
 tmp.setGracefulCleanup();
 
-// tslint:disable-next-line:no-var-requires
-const debug: (message: string) => void = require("debug")("chrome-debugging-client");
+const debug = createDebug("chrome-debugging-client");
 
 export default function createTmpDir(
   dir?: string,

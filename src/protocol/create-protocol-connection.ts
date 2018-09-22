@@ -20,27 +20,28 @@ export default async function createDebuggingProtocolConnection(
     }
   };
 
-  const connection = await connect(receive);
+  return connect(receive).then(async connection => {
+    const send = async (method: string, params: object = {}) => {
+      const response = await pending.responseFor(
+        id => connection.send(serialize(id, method, params)),
+        connection.disconnected.then(() => {
+          throw new Error(`disconnected before ${method} response`);
+        }),
+      );
+      if ("error" in response) {
+        const { message, code, data } = response.error;
+        throw createProtocolError(message, code, data);
+      }
+      return response.result;
+    };
 
-  const send = async (method: string, params: object = {}) => {
-    const response = await pending.responseFor(
-      id => connection.send(serialize(id, method, params)),
-      connection.disconnected.then(() => {
-        throw new Error(`disconnected before ${method} response`);
-      }),
-    );
-    if ("error" in response) {
-      const { message, code, data } = response.error;
-      throw createProtocolError(message, code, data);
-    }
-    return response.result;
-  };
-
-  return {
-    disconnect: connection.disconnect,
-    disconnected: connection.disconnected,
-    send,
-  };
+    return {
+      disconnect: connection.disconnect,
+      disconnected: connection.disconnected,
+      dispose: connection.dispose,
+      send,
+    };
+  });
 }
 
 function parse(message: string): Message {

@@ -1,14 +1,13 @@
+import createDebug = require("debug");
 import * as WebSocket from "ws";
 import { Connect } from "../../types/connect";
 
-// tslint:disable-next-line:no-var-requires
-const debug: (message: string) => void = require("debug")("chrome-debugging-client");
-// tslint:disable-next-line:no-var-requires
-const debugSocket: (...args: any[]) => void = require("debug")("chrome-debugging-client:ws");
+const debug = createDebug("chrome-debugging-client");
+const socketDebug = createDebug("chrome-debugging-client:ws");
 
 export default function createWebSocket(url: string): Connect {
   return async receive => {
-    debugSocket("opening", url);
+    socketDebug("opening", url);
     const ws = new WebSocket(url);
 
     const disconnected = new Promise<void>((resolve, reject) => {
@@ -17,16 +16,16 @@ export default function createWebSocket(url: string): Connect {
     });
 
     ws.on("message", (message: string) => {
-      debugSocket("receive", message);
+      socketDebug("receive", message);
       receive(message)
     });
 
     ws.on("error", (err) => {
-      debugSocket("error", err);
+      socketDebug("error", err);
     });
 
     ws.on("close", (evt) => {
-      debugSocket("closed", evt);
+      socketDebug("closed", evt);
     });
 
     await Promise.race([
@@ -36,10 +35,10 @@ export default function createWebSocket(url: string): Connect {
       }),
     ]);
 
-    debugSocket("opened", url);
+    socketDebug("opened", url);
 
     const send = (message: string) => {
-      debugSocket("send", message);
+      socketDebug("send", message);
       return new Promise<void>((resolve, reject) =>
         ws.send(message, err => {
           if (err) {
@@ -56,7 +55,7 @@ export default function createWebSocket(url: string): Connect {
         if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
           return;
         }
-        debugSocket("closing", url);
+        socketDebug("closing", url);
         ws.close();
       },
       disconnected,

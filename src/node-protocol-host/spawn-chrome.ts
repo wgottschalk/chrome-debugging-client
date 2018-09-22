@@ -1,9 +1,9 @@
+import createDebug = require("debug");
 import * as execa from "execa";
 import { Chrome } from "../../types/protocol-host";
 import waitForPortFile from "./wait-for-portfile";
 
-// tslint:disable-next-line:no-var-requires
-const debug: (message: string) => void = require("debug")("chrome-debugging-client");
+const debug = createDebug("chrome-debugging-client");
 
 export default async function spawnChrome(
   chromePath: string,
