@@ -36,77 +36,68 @@ test("connect to node websocket", async t => {
       });
       const client = await createProtocolClient(wsUrl);
       try {
-        const exceptionThrown = client.until("Runtime.exceptionThrown", 0);
-        const raceException = <T>(promise: Promise<T>) =>
-          Promise.race([
-            promise,
-            exceptionThrown.then(evt => {
-              const txt =
-                (evt.exceptionDetails.exception &&
-                  evt.exceptionDetails.exception.description) ||
-                evt.exceptionDetails.text;
-              throw new Error(txt);
-            }),
-          ]);
-
-        // we need to send Debugger.enable before Runtime.runIfWaitingForDebugger
-        // in order to receive the first break event but its promise will not resolve
-        // until runIfWaitingForDebugger is sent.
-        //
-        // So we send all of the commands concurrently then wait for them all.
-        const [pauseOnStart] = await raceException(
-          Promise.all([
+        const usingClient = (async () => {
+          // we need to send Debugger.enable before Runtime.runIfWaitingForDebugger
+          // in order to receive the first break event but its promise will not resolve
+          // until runIfWaitingForDebugger is sent.
+          //
+          // So we send all of the commands concurrently then wait for them all.
+          const [pauseOnStart] = await Promise.all([
             client.until("Debugger.paused"),
             client.send("Debugger.enable"),
             client.send("Runtime.enable"),
             client.send("Runtime.runIfWaitingForDebugger"),
-          ]),
-        );
+          ]);
 
-        t.is(
-          pauseOnStart.reason,
-          "Break on start",
-          "inspect-brk should pause in script after runIfWaitingForDebugger",
-        );
+          t.is(
+            pauseOnStart.reason,
+            "Break on start",
+            "inspect-brk should pause in script after runIfWaitingForDebugger",
+          );
 
-        // resume we expected resumed then paused from debugger on line 3
-        const [debuggerPause] = await raceException(
-          Promise.all([
+          // resume we expected resumed then paused from debugger on line 3
+          const [debuggerPause] = await Promise.all([
             client.until("Debugger.paused"),
             client.until("Debugger.resumed"),
             client.send("Debugger.resume"),
-          ]),
-        );
+          ]);
 
-        t.is(
-          debuggerPause.callFrames[0].location.lineNumber,
-          3,
-          "paused on line with debugger",
-        );
+          t.is(
+            debuggerPause.callFrames[0].location.lineNumber,
+            3,
+            "paused on line with debugger",
+          );
 
-        const { result } = await raceException(
-          client.send("Debugger.evaluateOnCallFrame", {
+          const { result } = await client.send("Debugger.evaluateOnCallFrame", {
             callFrameId: debuggerPause.callFrames[0].callFrameId,
             expression: "obj",
             returnByValue: true,
-          }),
-        );
+          });
 
-        t.deepEqual(result.value, { hello: "world" });
+          t.deepEqual(result.value, { hello: "world" });
 
-        const [consoleMessage] = await raceException(
-          Promise.all([
+          const [consoleMessage] = await Promise.all([
             client.until("Runtime.consoleAPICalled"),
             client.until("Debugger.resumed"),
             client.send("Debugger.resume"),
-          ]),
-        );
+          ]);
 
-        t.deepEqual(consoleMessage.args, [
-          {
-            type: "string",
-            value: "end",
-          },
+          t.deepEqual(consoleMessage.args, [
+            {
+              type: "string",
+              value: "end",
+            },
+          ]);
+        })();
+        await Promise.race([
+          usingClient,
+          client.until("Runtime.exceptionThrown", 0).then(evt => {
+            const txt =
+              (evt.exceptionDetails.exception &&
+                evt.exceptionDetails.exception.description) ||
+              evt.exceptionDetails.text;
+            throw new Error(txt);
+          }),
         ]);
       } finally {
         await client.dispose();

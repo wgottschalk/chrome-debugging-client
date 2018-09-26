@@ -1,15 +1,15 @@
 import { Connect } from "../../types/connect";
 import ProtocolClient from "../../types/protocol-client";
 import { EventEmitter, UsingTimeout } from "../../types/protocol-host";
-import createProtocolConnection, { Event } from "./create-protocol-connection";
-import createRaceDisconnected from "./create-race-disconnected";
+import createProtocolConnection, { Event } from "./create-json-rpc-connection";
 import createProtocolError from "./create-protocol-error";
-
-const DEFAULT_EVENT_TIMEOUT = 60000;
+import createRaceDisconnected from "./create-race-disconnected";
 
 export default async function createProtocolClient(
   eventEmitter: EventEmitter,
   connect: Connect,
+  defaultRequestTimeout: number,
+  defaultUntilTimeout: number,
   usingTimeout: UsingTimeout,
 ): Promise<ProtocolClient> {
   const emitEvent = (event: Event) => {
@@ -19,6 +19,7 @@ export default async function createProtocolClient(
   const connection = await createProtocolConnection(
     emitEvent,
     connect,
+    defaultRequestTimeout,
     usingTimeout,
   );
 
@@ -48,18 +49,15 @@ export default async function createProtocolClient(
       timeout,
     );
     if ("error" in response) {
-      throw createProtocolError(
-        response.error.message,
-        response.error.code,
-        response.error.data,
-      );
+      const { message, code, data } = response.error;
+      throw createProtocolError(message, code, data);
     }
     return response.result;
   };
 
   const raceDisconnected = createRaceDisconnected(
     connection.disconnected,
-    DEFAULT_EVENT_TIMEOUT,
+    defaultUntilTimeout,
     usingTimeout,
   );
 

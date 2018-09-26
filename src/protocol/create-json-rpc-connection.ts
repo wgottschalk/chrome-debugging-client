@@ -4,8 +4,6 @@ import { UsingTimeout } from "../../types/protocol-host";
 import createPendingRequests from "./create-pending-requests";
 import createRaceDisconnected from "./create-race-disconnected";
 
-const DEFAULT_SEND_TIMEOUT = 5000;
-
 export type Notify = (
   event: Event & { sessionId?: Protocol.Target.SessionID },
 ) => void;
@@ -14,9 +12,10 @@ export type SendRequest = (
   timeout?: number,
 ) => Promise<Response>;
 
-export default async function createDebuggingProtocolConnection(
+export default async function createJsonRpcConnection(
   notify: Notify,
   connect: Connect,
+  defaultRequestTimeout: number,
   usingTimeout: UsingTimeout,
 ): Promise<Connection<SendRequest>> {
   const pending = createPendingRequests<Response>();
@@ -34,7 +33,7 @@ export default async function createDebuggingProtocolConnection(
 
   const raceDisconnected = createRaceDisconnected(
     disconnected,
-    DEFAULT_SEND_TIMEOUT,
+    defaultRequestTimeout,
     usingTimeout,
   );
 
@@ -75,7 +74,6 @@ export type SuccessResponse = {
 export type ErrorResponse = {
   id: number;
   error: ResponseError;
-  sessionId?: string;
 };
 
 export type ResponseError = {
