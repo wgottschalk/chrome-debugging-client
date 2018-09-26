@@ -6,5 +6,8 @@
     "typeRoots": [],
     "types": [],
     "strict": true
-  }
+  },
+  "exclude": [
+    "create-target-connections.ts"
+  ]
 }

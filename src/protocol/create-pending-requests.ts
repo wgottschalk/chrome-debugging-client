@@ -1,54 +1,26 @@
 export default function createPendingRequests<T>(): {
-  responseFor: (
-    sendRequest: (id: number) => Promise<void>,
-    cancelled: Promise<never>,
-  ) => Promise<T>;
+  responseFor: (sendRequest: (id: number) => Promise<void>) => Promise<T>;
   resolveRequest: (id: number, response: T) => void;
 } {
   let sequence = 0;
-  const pending = new Map<number, ResponseCallback<T>>();
+  const pending = new Map<number, (response: T) => void>();
   return {
     resolveRequest,
     responseFor,
   };
 
-  function responsePromise(id: number) {
-    return new Promise<T>((resolve, reject) => {
-      pending.set(id, (err: Error | undefined, response?: T) => {
-        if (err !== undefined) {
-          reject(err);
-        } else {
-          resolve(response);
-        }
-      });
-    });
-  }
-
   function resolveRequest(id: number, response: T) {
     const callback = pending.get(id);
     if (callback) {
-      callback(undefined, response);
+      pending.delete(id);
+      callback(response);
     }
   }
 
-  async function responseFor(
-    sendRequest: (id: number) => Promise<void>,
-    cancelled: Promise<never>,
-  ) {
+  async function responseFor(sendRequest: (id: number) => Promise<void>) {
     const id = sequence++;
-    try {
-      const [response] = await Promise.race([
-        Promise.all([responsePromise(id), sendRequest(id)]),
-        cancelled,
-      ]);
-      return response;
-    } finally {
-      pending.delete(id);
-    }
+    const responsePromise = new Promise<T>(resolve => pending.set(id, resolve));
+    const [response] = await Promise.all([responsePromise, sendRequest(id)]);
+    return response;
   }
 }
-
-type ResponseCallback<T> = {
-  (error: Error): void;
-  (error: undefined, response: T): void;
-};

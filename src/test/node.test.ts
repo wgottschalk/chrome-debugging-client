@@ -4,7 +4,7 @@ import { createInterface } from "readline";
 import { createProtocolClient } from "../index";
 
 test("connect to node websocket", async t => {
-  t.plan(3);
+  t.plan(4);
 
   const child = disableNdb(
     () =>
@@ -17,71 +17,102 @@ test("connect to node websocket", async t => {
   // exec a promise is for the lifetime of the promise
   // if the process exits or errors before finish we'll end
   // the test
-  await Promise.race([child, (async () => {
-    const wsUrl = await new Promise<string>(resolve => {
-      // the websocket url is output on stderr
-      const readline = createInterface({
-        crlfDelay: Infinity,
-        input: child.stderr,
+  await Promise.race([
+    child,
+    (async () => {
+      const wsUrl = await new Promise<string>(resolve => {
+        // the websocket url is output on stderr
+        const readline = createInterface({
+          crlfDelay: Infinity,
+          input: child.stderr,
+        });
+
+        readline.once("line", line => {
+          const match = /Debugger listening on (ws:.*)$/.exec(line);
+          if (match) {
+            resolve(match[1]);
+          }
+        });
       });
+      const client = await createProtocolClient(wsUrl);
+      try {
+        const exceptionThrown = client.until("Runtime.exceptionThrown", 0);
+        const raceException = <T>(promise: Promise<T>) =>
+          Promise.race([
+            promise,
+            exceptionThrown.then(evt => {
+              const txt =
+                (evt.exceptionDetails.exception &&
+                  evt.exceptionDetails.exception.description) ||
+                evt.exceptionDetails.text;
+              throw new Error(txt);
+            }),
+          ]);
 
-      readline.once("line", line => {
-        const match = /Debugger listening on (ws:.*)$/.exec(line);
-        if (match) {
-          resolve(match[1]);
-        }
-      });
-    });
-    const client = await createProtocolClient(wsUrl);
-    try {
-      const exceptionThrown = client.until("Runtime.exceptionThrown");
-      const raceException = <T>(promise: Promise<T>) => Promise.race([promise, exceptionThrown.then((evt) => {
-        const txt = evt.exceptionDetails.exception && evt.exceptionDetails.exception.description || evt.exceptionDetails.text;
-        throw new Error(txt);
-      })]);
+        // we need to send Debugger.enable before Runtime.runIfWaitingForDebugger
+        // in order to receive the first break event but its promise will not resolve
+        // until runIfWaitingForDebugger is sent.
+        //
+        // So we send all of the commands concurrently then wait for them all.
+        const [pauseOnStart] = await raceException(
+          Promise.all([
+            client.until("Debugger.paused"),
+            client.send("Debugger.enable"),
+            client.send("Runtime.enable"),
+            client.send("Runtime.runIfWaitingForDebugger"),
+          ]),
+        );
 
-      // we need to send Debugger.enable before Runtime.runIfWaitingForDebugger
-      // in order to receive the first break event but its promise will not resolve
-      // until runIfWaitingForDebugger is sent, so we send all of the commands concurrently
-      // then wait for them all.
-      const [pauseOnStart] = await raceException(Promise.all([
-          client.until("Debugger.paused"),
-          client.send("Debugger.enable"),
-          client.send("Runtime.enable"),
-          client.send("Runtime.runIfWaitingForDebugger"),
-        ]));
+        t.is(
+          pauseOnStart.reason,
+          "Break on start",
+          "inspect-brk should pause in script after runIfWaitingForDebugger",
+        );
 
-      t.is(pauseOnStart.reason, "Break on start");
+        // resume we expected resumed then paused from debugger on line 3
+        const [debuggerPause] = await raceException(
+          Promise.all([
+            client.until("Debugger.paused"),
+            client.until("Debugger.resumed"),
+            client.send("Debugger.resume"),
+          ]),
+        );
 
-      const [debuggerPause] = await raceException(Promise.all([
-        client.until("Debugger.paused"),
-        client.send("Debugger.resume"),
-      ]));
+        t.is(
+          debuggerPause.callFrames[0].location.lineNumber,
+          3,
+          "paused on line with debugger",
+        );
 
-      const { result } = await raceException(client.send("Debugger.evaluateOnCallFrame", {
-        callFrameId: debuggerPause.callFrames[0].callFrameId,
-        expression: "obj",
-        returnByValue: true,
-      }));
+        const { result } = await raceException(
+          client.send("Debugger.evaluateOnCallFrame", {
+            callFrameId: debuggerPause.callFrames[0].callFrameId,
+            expression: "obj",
+            returnByValue: true,
+          }),
+        );
 
-      t.deepEqual(result.value, { hello: "world" });
+        t.deepEqual(result.value, { hello: "world" });
 
-      const [consoleMessage] = await raceException(Promise.all([
-        client.until("Runtime.consoleAPICalled"),
-        client.send("Debugger.resume"),
-      ]));
+        const [consoleMessage] = await raceException(
+          Promise.all([
+            client.until("Runtime.consoleAPICalled"),
+            client.until("Debugger.resumed"),
+            client.send("Debugger.resume"),
+          ]),
+        );
 
-      t.deepEqual(consoleMessage.args, [
-        {
-          type: "string",
-          value: "end",
-        },
-      ]);
-    } finally {
-      await client.disconnect();
-      await client.disconnected;
-    }
-  })()]);
+        t.deepEqual(consoleMessage.args, [
+          {
+            type: "string",
+            value: "end",
+          },
+        ]);
+      } finally {
+        await client.dispose();
+      }
+    })(),
+  ]);
 });
 
 function disableNdb<T>(callback: () => T) {

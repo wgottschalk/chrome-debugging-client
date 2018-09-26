@@ -1,5 +1,5 @@
 import createDebug = require("debug");
-import * as execa from "execa";
+import execa = require("execa");
 import { Chrome } from "../../types/protocol-host";
 import waitForPortFile from "./wait-for-portfile";
 
@@ -40,7 +40,7 @@ export default async function spawnChrome(
   });
 
   const cancelled = exited.then(() => {
-    throw Error("early exit of chrome");
+    throw Error("unexpected exit while waiting for DevToolsActivePort file");
   });
 
   const [port, path] = await Promise.race([
@@ -48,19 +48,20 @@ export default async function spawnChrome(
     cancelled,
   ]);
 
+  const kill = () => child.kill();
+  const dispose = async () => {
+    try {
+      kill();
+      await exited;
+    } catch (e) {
+      debug(`error killing chrome: ${e}`);
+    }
+  };
+
   return {
+    dispose,
     exited,
-    kill() {
-      child.kill();
-    },
-    async dispose() {
-      try {
-        this.kill();
-        await this.exited;
-      } catch (e) {
-        debug(`error killing chrome: ${e}`);
-      }
-    },
+    kill,
     path,
     port,
   };

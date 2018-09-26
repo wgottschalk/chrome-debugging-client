@@ -3,8 +3,9 @@
   "compilerOptions": {
     "outDir": "../dist",
     "types": [],
-    "typeRoots": []
+    "typeRoots": [],
+    "lib": ["scripthost", "es2017"]
   },
   "exclude": ["test", "node-protocol-host", "protocol"],
-  "references": [{ "path": "node-protocol-host" }, { "path": "protocol" }]
+  "references": [{ "path": "./node-protocol-host" }, { "path": "./protocol" }]
 }

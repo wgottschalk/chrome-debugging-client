@@ -5,6 +5,7 @@ import createTmpDir from "./create-tmp-dir";
 import createWebSocket from "./create-web-socket";
 import findChrome from "./find-chrome";
 import spawnChrome from "./spawn-chrome";
+import usingTimeout from "./using-timeout";
 
 const host: ProtocolHost = {
   createEventEmitter,
@@ -13,6 +14,7 @@ const host: ProtocolHost = {
   createWebSocket,
   findChrome,
   spawnChrome,
+  usingTimeout,
 };
 
 export = host;

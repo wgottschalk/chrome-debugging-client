@@ -7,11 +7,19 @@ export interface ProtocolHost {
   createWebSocket(url: string): Connect;
   createHttpGet(host: string, port: number): HttpGet;
   createEventEmitter(): EventEmitter;
+  usingTimeout: UsingTimeout;
 }
 
 export type FindChrome = () => string;
 
 export type CreateTmpDir = (dir?: string) => TmpDir;
+
+export type UsingTimeout = {
+  <T>(
+    ms: number,
+    using: (timeout: Promise<void>) => PromiseLike<T> | T,
+  ): Promise<T>;
+};
 
 export interface TmpDir {
   dir: string;

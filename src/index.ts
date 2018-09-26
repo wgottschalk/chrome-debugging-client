@@ -17,8 +17,9 @@ export async function createProtocolClient(
   wsUrl: string,
   createEventEmitter = defaultHost().createEventEmitter,
   createWebSocket = defaultHost().createWebSocket,
+  usingTimeout = defaultHost().usingTimeout,
 ) {
   const eventEmitter = createEventEmitter();
   const connect = createWebSocket(wsUrl);
-  return await _createProtocolClient(eventEmitter, connect);
+  return await _createProtocolClient(eventEmitter, connect, usingTimeout);
 }

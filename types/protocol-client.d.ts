@@ -48,20 +48,24 @@ export namespace ProtocolClient {
  * Chrome Remote Debugging Protocol Client
  */
 export interface ProtocolClient {
-  send<C extends ProtocolClient.CommandWithoutParams>(
+  send<C extends ProtocolClient.CommandWithoutParams | ProtocolClient.CommandWithOptionalParams>(
     command: C,
+    timeout?: number,
   ): Promise<ProtocolClient.CommandReturnType<C>>;
   send<C extends ProtocolClient.CommandWithOptionalParams>(
     command: C,
-    params?: ProtocolClient.CommandParamsType<C>,
+    params: ProtocolClient.CommandParamsType<C>,
+    timeout?: number,
   ): Promise<ProtocolClient.CommandReturnType<C>>;
   send<C extends ProtocolClient.CommandWithRequiredParams>(
     command: C,
     params: ProtocolClient.CommandParamsType<C>,
+    timeout?: number,
   ): Promise<ProtocolClient.CommandReturnType<C>>;
 
   until<E extends ProtocolClient.EventWithParams>(
     event: E,
+    timeout?: number,
   ): Promise<ProtocolClient.EventParamsType<E>>;
   until<E extends ProtocolClient.EventWithoutParams>(event: E): Promise<void>;
 

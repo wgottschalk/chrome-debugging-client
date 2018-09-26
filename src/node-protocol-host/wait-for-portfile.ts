@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
+import usingTimeout from "./using-timeout";
 
 const TIMEOUT = 60 * 1000;
 const INTERVAL = 50;
@@ -14,7 +15,9 @@ export default async function waitForPortFile(
 
   const deadline = Date.now() + TIMEOUT;
   while (true) {
-    await Promise.race([delay(INTERVAL), cancelled]);
+    await usingTimeout(INTERVAL, timeout => {
+      return Promise.race([timeout, cancelled]);
+    });
 
     const text = tryRead(portFile);
 
@@ -38,8 +41,4 @@ function tryRead(filename: string): string | undefined {
   } catch (e) {
     // ignore
   }
-}
-
-export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }

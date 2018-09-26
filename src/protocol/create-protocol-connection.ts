@@ -1,77 +1,87 @@
+import Protocol from "devtools-protocol";
 import { Connect, Connection } from "../../types/connect";
+import { UsingTimeout } from "../../types/protocol-host";
 import createPendingRequests from "./create-pending-requests";
-import createProtocolError from "./create-protocol-error";
+import createRaceDisconnected from "./create-race-disconnected";
 
-export type EmitEvent = (event: string, params?: object) => void;
-export type SendCommand = (method: string, params?: object) => Promise<object>;
+const DEFAULT_SEND_TIMEOUT = 5000;
+
+export type Notify = (
+  event: Event & { sessionId?: Protocol.Target.SessionID },
+) => void;
+export type SendRequest = (
+  request: Request & { sessionId?: Protocol.Target.SessionID },
+  timeout?: number,
+) => Promise<Response>;
 
 export default async function createDebuggingProtocolConnection(
-  emitEvent: EmitEvent,
+  notify: Notify,
   connect: Connect,
-): Promise<Connection<SendCommand>> {
+  usingTimeout: UsingTimeout,
+): Promise<Connection<SendRequest>> {
   const pending = createPendingRequests<Response>();
 
-  const receive = (data: string) => {
-    const message = parse(data);
-    if ("id" in message) {
-      pending.resolveRequest(message.id, message);
+  const receive = (message: string) => {
+    const eventOrResponse = JSON.parse(message) as Event | Response;
+    if ("id" in eventOrResponse) {
+      pending.resolveRequest(eventOrResponse.id, eventOrResponse);
     } else {
-      emitEvent(message.method, message.params);
+      notify(eventOrResponse);
     }
   };
 
-  return connect(receive).then(async connection => {
-    const send = async (method: string, params: object = {}) => {
-      const response = await pending.responseFor(
-        id => connection.send(serialize(id, method, params)),
-        connection.disconnected.then(() => {
-          throw new Error(`disconnected before ${method} response`);
-        }),
-      );
-      if ("error" in response) {
-        const { message, code, data } = response.error;
-        throw createProtocolError(message, code, data);
-      }
-      return response.result;
-    };
+  const { send, disconnect, disconnected, dispose } = await connect(receive);
 
-    return {
-      disconnect: connection.disconnect,
-      disconnected: connection.disconnected,
-      dispose: connection.dispose,
-      send,
-    };
-  });
+  const raceDisconnected = createRaceDisconnected(
+    disconnected,
+    DEFAULT_SEND_TIMEOUT,
+    usingTimeout,
+  );
+
+  const sendRequest = (
+    request: Request & { id?: number },
+    timeout?: number,
+  ) => {
+    const response = pending.responseFor(id => {
+      request.id = id;
+      return send(JSON.stringify(request));
+    });
+    return raceDisconnected(response, request.method, timeout);
+  };
+
+  return {
+    disconnect,
+    disconnected,
+    dispose,
+    send: sendRequest,
+  };
 }
 
-function parse(message: string): Message {
-  return JSON.parse(message);
-}
-
-function serialize(id: number, method: string, params: object): string {
-  return JSON.stringify({ id, method, params });
-}
-
-type Event = {
+export type Request = {
   method: string;
   params: object;
 };
 
-type SuccessResponse = {
+export type Event = {
+  method: string;
+  params: object;
+};
+
+export type SuccessResponse = {
   id: number;
   result: object;
 };
 
-type ErrorResponse = {
+export type ErrorResponse = {
   id: number;
   error: ResponseError;
+  sessionId?: string;
 };
 
-type ResponseError = {
+export type ResponseError = {
   code: number;
   message: string;
   data?: string;
 };
 
-type Response = SuccessResponse | ErrorResponse;
-type Message = Event | Response;
+export type Response = SuccessResponse | ErrorResponse;

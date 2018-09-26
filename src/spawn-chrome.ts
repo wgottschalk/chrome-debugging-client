@@ -32,14 +32,11 @@ export default async function spawnChrome(
       stdio,
     );
     return {
-      dispose,
-      exited: (async () => {
-        try {
-          await exited;
-        } finally {
-          tmpDir.dispose();
-        }
-      })(),
+      async dispose() {
+        await dispose();
+        await tmpDir.dispose();
+      },
+      exited: exited.then(tmpDir.dispose, tmpDir.dispose),
       kill,
       path,
       port,
